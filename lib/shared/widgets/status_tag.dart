@@ -24,6 +24,12 @@ class StatusTag extends StatelessWidget {
       StatusTagTone.neutral => tokens.primarySubtle,
     };
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isNeutral = tone == StatusTagTone.neutral;
+    final textColor = isNeutral
+        ? (isDark ? tokens.textPrimary : tokens.primary)
+        : (color.computeLuminance() > 0.4 ? const Color(0xFF1B2215) : Colors.white);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color,
@@ -34,7 +40,7 @@ class StatusTag extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.black.withAlpha(190),
+                color: textColor,
                 fontWeight: FontWeight.w700,
               ),
         ),

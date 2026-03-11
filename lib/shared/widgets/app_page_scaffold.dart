@@ -1,12 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stably_app/app/providers/app_state_providers.dart';
 import 'package:stably_app/app/router/app_router.dart';
 import 'package:stably_app/shared/design/app_spacing.dart';
 import 'package:stably_app/shared/design/app_theme_tokens.dart';
 import 'package:stably_app/shared/widgets/pill_button.dart';
 
-class AppPageScaffold extends StatelessWidget {
+class AppPageScaffold extends ConsumerWidget {
   const AppPageScaffold({
     super.key,
     required this.title,
@@ -21,7 +23,7 @@ class AppPageScaffold extends StatelessWidget {
   final bool showSettingsButton;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
@@ -76,6 +78,14 @@ class AppPageScaffold extends StatelessWidget {
                         if (showSettingsButton && !stackHeader) ...[
                           const SizedBox(width: 12),
                           PillButton(
+                            label: theme.brightness == Brightness.dark ? 'Light' : 'Dark',
+                            icon: theme.brightness == Brightness.dark ? CupertinoIcons.sun_max : CupertinoIcons.moon,
+                            isPrimary: false,
+                            compact: true,
+                            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                          ),
+                          const SizedBox(width: 12),
+                          PillButton(
                             label: 'Settings',
                             icon: CupertinoIcons.slider_horizontal_3,
                             isPrimary: false,
@@ -88,13 +98,25 @@ class AppPageScaffold extends StatelessWidget {
                     ),
                     if (showSettingsButton && stackHeader) ...[
                       const SizedBox(height: 14),
-                      PillButton(
-                        label: 'Settings',
-                        icon: CupertinoIcons.slider_horizontal_3,
-                        isPrimary: false,
-                        compact: true,
-                        onPressed: () =>
-                            context.pushNamed(AppRoute.settings.name),
+                      Row(
+                        children: [
+                          PillButton(
+                            label: theme.brightness == Brightness.dark ? 'Light' : 'Dark',
+                            icon: theme.brightness == Brightness.dark ? CupertinoIcons.sun_max : CupertinoIcons.moon,
+                            isPrimary: false,
+                            compact: true,
+                            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                          ),
+                          const SizedBox(width: 12),
+                          PillButton(
+                            label: 'Settings',
+                            icon: CupertinoIcons.slider_horizontal_3,
+                            isPrimary: false,
+                            compact: true,
+                            onPressed: () =>
+                                context.pushNamed(AppRoute.settings.name),
+                          ),
+                        ],
                       ),
                     ],
                   ],

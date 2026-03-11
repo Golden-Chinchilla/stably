@@ -21,8 +21,9 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isPrimary ? tokens.primary : tokens.primarySubtle;
-    final foregroundColor = isPrimary ? Colors.white : tokens.primary;
+    final foregroundColor = isPrimary ? Colors.white : (isDark ? tokens.textPrimary : tokens.primary);
 
     return Material(
       color: Colors.transparent,

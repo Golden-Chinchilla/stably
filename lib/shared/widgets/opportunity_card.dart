@@ -67,7 +67,7 @@ class OpportunityCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final tag in tags) StatusTag(label: tag, tone: tone),
+              for (final tag in tags) StatusTag(label: tag),
             ],
           ),
         ],

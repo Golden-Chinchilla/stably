@@ -37,12 +37,12 @@ class DiscoverPage extends StatelessWidget {
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
+            children: const [
               StatusTag(label: 'USDC'),
-              StatusTag(label: 'Flexible', tone: StatusTagTone.info),
-              StatusTag(label: 'CeFi / DeFi', tone: StatusTagTone.success),
-              StatusTag(label: 'Risk screened', tone: StatusTagTone.warning),
-              StatusTag(label: 'Top APY', tone: StatusTagTone.info),
+              StatusTag(label: 'Flexible'),
+              StatusTag(label: 'CeFi / DeFi'),
+              StatusTag(label: 'Risk screened'),
+              StatusTag(label: 'Top APY'),
             ],
           ),
         ),

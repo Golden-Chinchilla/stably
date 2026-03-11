@@ -41,7 +41,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
 
   static const dark = AppThemeTokens(
     primary: Color(0xFF4A5D23),
-    primarySubtle: Color(0xFFE4E8DE),
+    primarySubtle: Color(0xFF2E381E), // Slightly toned-back dark green instead of E4E8DE
     background: Color(0xFF181A17),
     surface: Color(0xFF222620),
     textPrimary: Color(0xFFF4F5F2),
