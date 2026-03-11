@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stably-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-11",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stably-db",
+      "database_id": "replace-with-real-d1-id"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "replace-with-real-kv-id"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "stably-assets"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "ALERT_QUEUE",
+        "queue": "stably-alerts"
+      }
+    ]
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  }
+}
