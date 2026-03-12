@@ -7,7 +7,7 @@ class InfoListCard extends StatelessWidget {
   const InfoListCard({super.key, required this.title, required this.rows});
 
   final String title;
-  final List<({String label, String value, String hint})> rows;
+  final List<({String label, String value, String? hint})> rows;
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +31,14 @@ class InfoListCard extends StatelessWidget {
                         rows[index].label,
                         style: theme.textTheme.labelLarge,
                       ),
-                      const SizedBox(height: 4),
-                      Text(rows[index].hint, style: theme.textTheme.bodySmall),
+                      if (rows[index].hint != null &&
+                          rows[index].hint!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          rows[index].hint!,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
                     ],
                   ),
                 ),

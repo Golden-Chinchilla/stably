@@ -40,12 +40,10 @@ class HomePage extends ConsumerWidget {
 
     return AppPageScaffold(
       title: 'Stably',
-      subtitle: 'Institutional-grade stablecoin and yield pool intelligence.',
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
           title: 'Market Overview',
-          subtitle: 'Top-line stablecoin coverage from the deployed backend.',
           child: stablecoinsAsync.when(
             data: (stablecoins) {
               final featured = stablecoins.isNotEmpty
@@ -53,13 +51,9 @@ class HomePage extends ConsumerWidget {
                   : null;
 
               return HighlightPanel(
-                eyebrow: 'Stablecoins',
                 title: featured == null
                     ? 'Stablecoin coverage is online.'
                     : '${featured.symbol} leads the tracked stablecoin set.',
-                description: featured == null
-                    ? 'Backend connectivity is working, but no stablecoin rows have synced yet.'
-                    : '${featured.name} is currently the largest tracked stablecoin by circulating USD across ${featured.chains.length} chains.',
                 value: featured == null
                     ? '—'
                     : formatCurrency(featured.circulatingPeggedUsd),
@@ -96,8 +90,6 @@ class HomePage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Coverage Snapshot',
-          subtitle:
-              'Sync status, stablecoin breadth, and top yield pool coverage.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => Column(
               children: [
@@ -212,7 +204,6 @@ class HomePage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Top Yield Pools',
-          subtitle: 'Current yield pool leaders from the tracked market set.',
           child: poolsAsync.when(
             data: (pools) => _PoolList(
               pools: pools.take(2).toList(),
@@ -230,8 +221,6 @@ class HomePage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Top Stablecoins',
-          subtitle:
-              'Open stablecoin detail with chain coverage and related pools.',
           child: stablecoinsAsync.when(
             data: (stablecoins) =>
                 _StablecoinList(stablecoins: stablecoins.take(3).toList()),
@@ -244,8 +233,6 @@ class HomePage extends ConsumerWidget {
         ),
         const SectionBlock(
           title: 'Risk Notes',
-          subtitle:
-              'Compliance and clarity remain visible in the product shell.',
           child: Column(
             children: [
               RiskNoticeCard(
@@ -301,8 +288,8 @@ class _PoolList extends StatelessWidget {
                 asset: '${pools[index].symbol} · ${pools[index].chain}',
                 apy: formatPercent(pools[index].apy),
                 summary: pools[index].poolMeta?.isNotEmpty == true
-                    ? pools[index].poolMeta!
-                    : 'Tracked yield pool synced from DefiLlama.',
+                    ? pools[index].poolMeta
+                    : null,
                 tags: [
                   pools[index].chain,
                   pools[index].symbol,

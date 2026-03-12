@@ -13,16 +13,18 @@ class AppPageScaffold extends ConsumerWidget {
   const AppPageScaffold({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.children,
     this.showSettingsButton = true,
+    this.showBrandPill = false,
     this.onRefresh,
   });
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final List<Widget> children;
   final bool showSettingsButton;
+  final bool showBrandPill;
   final Future<void> Function()? onRefresh;
 
   @override
@@ -66,31 +68,39 @@ class AppPageScaffold extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: tokens.primarySubtle.withValues(
-                                    alpha: 0.8,
+                              if (showBrandPill) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
                                   ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusPill,
+                                  decoration: BoxDecoration(
+                                    color: tokens.primarySubtle.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusPill,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Stable Yield Intelligence',
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: tokens.primary,
+                                          letterSpacing: 0.4,
+                                        ),
                                   ),
                                 ),
-                                child: Text(
-                                  'Stable Yield Intelligence',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: tokens.primary,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
+                                const SizedBox(height: 10),
+                              ],
                               Text(title, style: theme.textTheme.displaySmall),
-                              const SizedBox(height: 4),
-                              Text(subtitle, style: theme.textTheme.bodySmall),
+                              if (subtitle != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  subtitle!,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
                             ],
                           ),
                         ),

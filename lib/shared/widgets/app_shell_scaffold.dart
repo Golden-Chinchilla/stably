@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:stably_app/shared/design/app_theme_tokens.dart';
 
-
 class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({super.key, required this.navigationShell});
 

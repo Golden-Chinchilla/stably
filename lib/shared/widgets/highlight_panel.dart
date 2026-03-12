@@ -8,9 +8,9 @@ import 'package:stably_app/shared/widgets/status_tag.dart';
 class HighlightPanel extends StatelessWidget {
   const HighlightPanel({
     super.key,
-    required this.eyebrow,
+    this.eyebrow,
     required this.title,
-    required this.description,
+    this.description,
     required this.value,
     required this.secondaryValue,
     required this.tag,
@@ -18,9 +18,9 @@ class HighlightPanel extends StatelessWidget {
     this.footer,
   });
 
-  final String eyebrow;
+  final String? eyebrow;
   final String title;
-  final String description;
+  final String? description;
   final String value;
   final String secondaryValue;
   final String tag;
@@ -39,24 +39,31 @@ class HighlightPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  eyebrow.toUpperCase(),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    letterSpacing: 1.0,
-                    color: tokens.textSecondary,
-                  ),
-                ),
-              ),
-              StatusTag(label: tag, tone: tone),
-            ],
-          ),
-          const SizedBox(height: 18),
+          if (eyebrow != null || tag.isNotEmpty) ...[
+            Row(
+              children: [
+                if (eyebrow != null)
+                  Expanded(
+                    child: Text(
+                      eyebrow!.toUpperCase(),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        letterSpacing: 1.0,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                if (tag.isNotEmpty) StatusTag(label: tag, tone: tone),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
           Text(title, style: theme.textTheme.headlineMedium),
-          const SizedBox(height: 10),
-          Text(description, style: theme.textTheme.bodyMedium),
+          if (description != null) ...[
+            const SizedBox(height: 10),
+            Text(description!, style: theme.textTheme.bodyMedium),
+          ],
           const SizedBox(height: 22),
           Wrap(
             spacing: 16,

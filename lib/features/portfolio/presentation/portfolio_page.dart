@@ -120,25 +120,18 @@ class PortfolioPage extends ConsumerWidget {
 
     return AppPageScaffold(
       title: 'Portfolio',
-      subtitle:
-          'Track local positions with editable entries and live yield pool context.',
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
           title: 'Portfolio Overview',
-          subtitle: 'Summary of tracked positions with current market context.',
           child: portfolioAsync.when(
             data: (positions) {
               final summary = _buildSummary(positions, livePools);
 
               return HighlightPanel(
-                eyebrow: 'Portfolio',
                 title: positions.isEmpty
                     ? 'Add your first tracked position.'
                     : 'Track ${positions.length} positions with live APY context.',
-                description: positions.isEmpty
-                    ? 'Create positions manually or load a demo set from the live yield pool board.'
-                    : 'Tracked positions stay local-first while current yield pools provide directional APY context.',
                 value: formatCurrency(summary.totalAmount),
                 secondaryValue: formatCurrency(summary.estimatedAnnualCarry),
                 tag: positions.isEmpty ? 'Empty' : 'Tracking',
@@ -183,7 +176,6 @@ class PortfolioPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Portfolio Snapshot',
-          subtitle: 'Tracked positions combined with current APY snapshots.',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -253,17 +245,17 @@ class PortfolioPage extends ConsumerWidget {
                       (
                         label: 'Tracked capital',
                         value: formatCurrency(summary.totalAmount),
-                        hint: 'Total manually recorded capital.',
+                        hint: null,
                       ),
                       (
                         label: 'Estimated annual carry',
                         value: formatCurrency(summary.estimatedAnnualCarry),
-                        hint: 'Simple estimate from capital multiplied by APY.',
+                        hint: null,
                       ),
                       (
                         label: 'Highest APY',
                         value: formatPercent(summary.highestApy),
-                        hint: 'Highest APY across the tracked positions.',
+                        hint: null,
                       ),
                     ],
                   ),
@@ -293,8 +285,6 @@ class PortfolioPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Tracked Positions',
-          subtitle:
-              'Edit local positions and review matched yield pool context when available.',
           child: portfolioAsync.when(
             data: (positions) {
               if (positions.isEmpty) {
@@ -345,8 +335,6 @@ class PortfolioPage extends ConsumerWidget {
         ),
         const SectionBlock(
           title: 'Portfolio Notes',
-          subtitle:
-              'The portfolio page remains local-first and manual-accounting based.',
           child: Column(
             children: [
               RiskNoticeCard(

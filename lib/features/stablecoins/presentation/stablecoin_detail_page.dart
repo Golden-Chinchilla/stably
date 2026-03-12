@@ -62,21 +62,13 @@ class StablecoinDetailPage extends ConsumerWidget {
 
         return AppPageScaffold(
           title: detail.stablecoin.symbol,
-          subtitle: selectedChain == null
-              ? '${detail.stablecoin.name} across tracked chains.'
-              : '${detail.stablecoin.name} focused on $selectedChain.',
           onRefresh: () => _refresh(ref),
           children: [
             SectionBlock(
               title: 'Market Overview',
-              subtitle: 'Identity, scale, and tracked chain coverage.',
               child: HighlightPanel(
-                eyebrow: detail.stablecoin.pegType ?? 'stablecoin',
                 title:
                     '${detail.stablecoin.symbol} is tracked on ${detail.stablecoin.chains.length} chains.',
-                description: selectedChain == null
-                    ? '${detail.stablecoin.name} is priced at ${detail.stablecoin.price?.toStringAsFixed(4) ?? '—'} with ${formatCurrency(detail.stablecoin.circulatingPeggedUsd)} in circulating USD.'
-                    : '${detail.stablecoin.name} is priced at ${detail.stablecoin.price?.toStringAsFixed(4) ?? '—'} and the pool view is filtered to $selectedChain.',
                 value: formatCurrency(detail.stablecoin.circulatingPeggedUsd),
                 secondaryValue: '${detail.stablecoin.chains.length} chains',
                 tag: detail.stablecoin.pegMechanism ?? 'Tracked',
@@ -85,36 +77,34 @@ class StablecoinDetailPage extends ConsumerWidget {
             ),
             SectionBlock(
               title: 'Core Profile',
-              subtitle: 'Primary stablecoin attributes from DefiLlama.',
               child: InfoListCard(
-                title: 'Profile fields',
+                title: 'Project Details',
                 rows: [
                   (
                     label: 'Price',
                     value: detail.stablecoin.price?.toStringAsFixed(4) ?? '—',
-                    hint: 'Latest price snapshot.',
+                    hint: null,
                   ),
                   (
                     label: 'Peg mechanism',
                     value: detail.stablecoin.pegMechanism ?? 'Unknown',
-                    hint: 'Mechanism classification from DefiLlama.',
+                    hint: null,
                   ),
                   (
                     label: 'Price source',
                     value: detail.stablecoin.priceSource ?? 'Unknown',
-                    hint: 'Upstream source for the displayed price.',
+                    hint: null,
                   ),
                   (
                     label: 'Gecko ID',
                     value: detail.stablecoin.geckoId ?? '—',
-                    hint: 'External asset mapping key.',
+                    hint: null,
                   ),
                 ],
               ),
             ),
             SectionBlock(
               title: 'Circulating USD Trend',
-              subtitle: 'Current scale with day, week, and month snapshots.',
               child: TrendLineChartCard(
                 currentUsd: detail.stablecoin.circulatingPeggedUsd,
                 prevDayUsd:
@@ -131,9 +121,6 @@ class StablecoinDetailPage extends ConsumerWidget {
             ),
             SectionBlock(
               title: 'Chain Coverage',
-              subtitle: selectedChain == null
-                  ? 'Filter the detail view by chain or review the largest chain slices.'
-                  : 'The detail view is narrowed to one chain and its related pools.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -185,9 +172,6 @@ class StablecoinDetailPage extends ConsumerWidget {
             ),
             SectionBlock(
               title: 'Related Yield Pools',
-              subtitle: selectedChain == null
-                  ? 'Top tracked pools using this stablecoin symbol.'
-                  : 'Top tracked pools using this stablecoin symbol on $selectedChain.',
               child: poolsAsync.when(
                 data: (pools) {
                   if (pools.isEmpty) {
@@ -218,8 +202,8 @@ class StablecoinDetailPage extends ConsumerWidget {
                           apy: formatPercent(visiblePools[index].apy),
                           summary:
                               visiblePools[index].poolMeta?.isNotEmpty == true
-                              ? visiblePools[index].poolMeta!
-                              : 'Tracked yield pool currently linked to this stablecoin symbol.',
+                              ? visiblePools[index].poolMeta
+                              : null,
                           tags: [
                             visiblePools[index].chain,
                             visiblePools[index].symbol,
@@ -284,11 +268,7 @@ class _DetailStateScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppPageScaffold(
-      title: 'Stablecoin',
-      subtitle: 'Loading stablecoin detail from the backend.',
-      children: [child],
-    );
+    return AppPageScaffold(title: 'Stablecoin', children: [child]);
   }
 }
 

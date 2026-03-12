@@ -89,20 +89,14 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
 
     return AppPageScaffold(
       title: 'Allocation',
-      subtitle:
-          'Build an allocation using live yield pools, explicit filters, and a transparent scoring model.',
       onRefresh: _refresh,
       children: [
         SectionBlock(
           title: 'Allocation Overview',
-          subtitle:
-              'Current plan status based on your live inputs and constraints.',
           child: _buildOverview(stablecoinsAsync, poolsAsync),
         ),
         SectionBlock(
           title: 'Scenario Inputs',
-          subtitle:
-              'Set capital, stablecoin, chain scope, pool count, and selection strategy.',
           trailing: PillButton(
             label: 'Refresh',
             icon: CupertinoIcons.arrow_clockwise,
@@ -112,14 +106,10 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
         ),
         SectionBlock(
           title: 'Suggested Allocation',
-          subtitle:
-              'A constrained plan built from live pools that match your selected scope.',
           child: _buildSuggestedAllocation(stablecoinsAsync, poolsAsync),
         ),
         SectionBlock(
           title: 'Plan Notes',
-          subtitle:
-              'Explain why pools were selected and what tradeoffs the current plan makes.',
           child: _buildPlanNotes(stablecoinsAsync, poolsAsync),
         ),
       ],
@@ -142,13 +132,9 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
           );
 
           return HighlightPanel(
-            eyebrow: 'Allocation',
             title: plan.rows.isEmpty
                 ? 'No plan matches the current constraints.'
                 : 'Allocate across ${plan.rows.length} live yield pools with a ${_strategy.label.toLowerCase()} bias.',
-            description: plan.rows.isEmpty
-                ? 'Adjust stablecoin, chain scope, minimum TVL, or pool count to widen the selection set.'
-                : 'The plan ranks eligible pools using APY and TVL, then distributes capital across the strongest matches instead of relying on a single pool.',
             value: formatCurrency(capital),
             secondaryValue: formatPercent(plan.blendedApy),
             tag: plan.rows.isEmpty ? 'No plan' : _strategy.label,
@@ -344,8 +330,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
                       asset:
                           '${plan.rows[index].pool.symbol} · ${plan.rows[index].pool.chain}',
                       apy: formatPercent(plan.rows[index].pool.apy),
-                      summary:
-                          '${plan.rows[index].percent}% allocation · score ${plan.rows[index].score.toStringAsFixed(2)} · TVL ${formatCurrency(plan.rows[index].pool.tvlUsd)}',
+                      summary: null,
                       tags: [
                         formatCurrency(plan.rows[index].amount),
                         plan.rows[index].pool.symbol,
@@ -533,7 +518,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
 
     final rows = <_AllocationRow>[];
     final splitRows = <({String label, String value, Color color, int flex})>[];
-    final infoRows = <({String label, String value, String hint})>[];
+    final infoRows = <({String label, String value, String? hint})>[];
     const colors = [
       Color(0xFFD9A05B),
       Color(0xFF5E93A5),
@@ -573,8 +558,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
       infoRows.add((
         label: '${pool.project} · ${pool.chain}',
         value: formatCurrency(amount),
-        hint:
-            'APY ${formatPercent(pool.apy)} · TVL ${formatCurrency(pool.tvlUsd)} · ${pool.symbol}',
+        hint: null,
       ));
     }
 
@@ -709,7 +693,7 @@ class _AllocationPlan {
 
   final List<_AllocationRow> rows;
   final List<({String label, String value, Color color, int flex})> splitRows;
-  final List<({String label, String value, String hint})> infoRows;
+  final List<({String label, String value, String? hint})> infoRows;
   final double estimatedAnnualCarry;
   final double blendedApy;
 }

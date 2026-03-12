@@ -124,25 +124,18 @@ class AlertsPage extends ConsumerWidget {
 
     return AppPageScaffold(
       title: 'Alerts',
-      subtitle:
-          'Manage local alert rules with tracked yield pool and portfolio context.',
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
           title: 'Alerts Overview',
-          subtitle: 'Summary of local rules and current live context.',
           child: rulesAsync.when(
             data: (rules) {
               final enabledRules = rules.where((rule) => rule.enabled).length;
 
               return HighlightPanel(
-                eyebrow: 'Alerts',
                 title: rules.isEmpty
                     ? 'Add your first alert rule.'
                     : 'Track rates, promos, and portfolio drift from one ruleset.',
-                description: rules.isEmpty
-                    ? 'Create rules manually or seed a first set from the live yield pool board.'
-                    : 'Rules are stored locally while tracked yield pools and positions provide current monitoring context.',
                 value: '$enabledRules enabled',
                 secondaryValue: '${rules.length} total',
                 tag: rules.isEmpty ? 'Empty' : 'Active',
@@ -188,8 +181,6 @@ class AlertsPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Alerts Snapshot',
-          subtitle:
-              'Local rules combined with tracked positions and yield pools.',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -291,8 +282,6 @@ class AlertsPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Alert Rules',
-          subtitle:
-              'Create local rules for yield thresholds, promos, and portfolio drift.',
           child: rulesAsync.when(
             data: (rules) {
               if (rules.isEmpty) {
@@ -368,8 +357,6 @@ class AlertsPage extends ConsumerWidget {
         ),
         const SectionBlock(
           title: 'Alert Notes',
-          subtitle:
-              'The notification layer stays informative, selective, and compliant.',
           child: Column(
             children: [
               RiskNoticeCard(

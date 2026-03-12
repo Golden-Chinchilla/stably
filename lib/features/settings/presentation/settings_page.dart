@@ -20,18 +20,12 @@ class SettingsPage extends ConsumerWidget {
 
     return AppPageScaffold(
       title: 'Settings',
-      subtitle: 'Theme, trust surfaces, and outward links live here.',
       showSettingsButton: false,
       children: [
         const SectionBlock(
           title: 'Product tone',
-          subtitle:
-              'Settings should still feel designed, not like a utility page.',
           child: HighlightPanel(
-            eyebrow: 'Preferences',
             title: 'Switch between warm daylight and quiet luxury dark mode.',
-            description:
-                'The settings surface holds appearance, compliance, and support content while keeping the same refined card language as the rest of the app.',
             value: '2 themes',
             secondaryValue: '0 clutter',
             tag: 'Refined',
@@ -40,7 +34,6 @@ class SettingsPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Appearance',
-          subtitle: 'Keep the app calm in both light and dark environments.',
           trailing: StatusTag(
             label: isDark ? 'Dark' : 'Light',
             tone: StatusTagTone.info,
@@ -73,7 +66,6 @@ class SettingsPage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Compliance',
-          subtitle: 'Risk framing stays explicit and easy to revisit.',
           child: BaseCard(
             child: Text(
               'Stably only aggregates public data and simulations. It does not execute trades, custody assets, or provide investment advice.',
@@ -83,7 +75,6 @@ class SettingsPage extends ConsumerWidget {
         ),
         const SectionBlock(
           title: 'Resources',
-          subtitle: 'Reserve space for docs, legal pages, and external links.',
           child: Row(
             children: [
               Expanded(

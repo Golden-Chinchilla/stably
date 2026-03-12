@@ -14,7 +14,7 @@ class OpportunityCard extends StatelessWidget {
     required this.platform,
     required this.asset,
     required this.apy,
-    required this.summary,
+    this.summary,
     required this.tags,
     this.tone = StatusTagTone.success,
     this.onTap,
@@ -24,7 +24,7 @@ class OpportunityCard extends StatelessWidget {
   final String platform;
   final String asset;
   final String apy;
-  final String summary;
+  final String? summary;
   final List<String> tags;
   final StatusTagTone tone;
   final VoidCallback? onTap;
@@ -58,8 +58,10 @@ class OpportunityCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        Text(summary, style: theme.textTheme.bodySmall),
+        if (summary != null) ...[
+          const SizedBox(height: 14),
+          Text(summary!, style: theme.textTheme.bodySmall),
+        ],
         const SizedBox(height: 14),
         Wrap(
           spacing: 8,

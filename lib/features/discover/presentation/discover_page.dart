@@ -60,24 +60,18 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
 
     return AppPageScaffold(
       title: 'Yield Discovery',
-      subtitle: 'Scan tracked stablecoins and the highest APY yield pools.',
       onRefresh: _refresh,
       children: [
         SectionBlock(
           title: 'Discovery Overview',
-          subtitle: 'Top yield pool signal from the current market set.',
           child: poolsAsync.when(
             data: (pools) {
               final topPool = pools.isNotEmpty ? pools.first : null;
 
               return HighlightPanel(
-                eyebrow: 'Yield pools',
                 title: topPool == null
                     ? 'Yield pool coverage is online.'
                     : '${topPool.project} leads the tracked yield pool board.',
-                description: topPool == null
-                    ? 'No yield pools are available yet. Run a backend sync and refresh the page.'
-                    : 'Current lead pool is ${topPool.symbol} on ${topPool.chain}. Use it as a first pass before comparing stablecoin coverage and chain context.',
                 value: topPool == null ? '—' : formatPercent(topPool.apy),
                 secondaryValue: '${pools.length} pools',
                 tag: 'Live',
@@ -92,8 +86,6 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         ),
         SectionBlock(
           title: 'Search',
-          subtitle:
-              'Filter stablecoins and yield pools by symbol, project, or chain.',
           child: AppSearchField(
             controller: _searchController,
             placeholder: 'Search stablecoins, pools, or chains',
@@ -103,8 +95,6 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         ),
         SectionBlock(
           title: 'Stablecoin Filters',
-          subtitle:
-              'Open a stablecoin detail view directly from the tracked set.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => Wrap(
               spacing: 8,
@@ -134,8 +124,6 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         ),
         SectionBlock(
           title: 'Stablecoin Coverage',
-          subtitle:
-              'Jump from discovery into stablecoin detail and chain coverage.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => _StablecoinBoard(
               stablecoins: _filterStablecoins(stablecoins).take(4).toList(),
@@ -149,8 +137,6 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         ),
         SectionBlock(
           title: 'Yield Pool Board',
-          subtitle:
-              'Tracked yield pools ranked by APY, with stablecoin detail deep links.',
           child: poolsAsync.when(
             data: (pools) {
               final filteredPools = _filterPools(pools);
@@ -220,7 +206,6 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         ),
         const SectionBlock(
           title: 'Research Notes',
-          subtitle: 'Static notes remain until protocol metadata gets richer.',
           child: Column(
             children: [
               RiskNoticeCard(
@@ -428,8 +413,8 @@ class _DiscoverPoolList extends StatelessWidget {
           asset: '${pools[index].symbol} · ${pools[index].chain}',
           apy: formatPercent(pools[index].apy),
           summary: pools[index].poolMeta?.isNotEmpty == true
-              ? pools[index].poolMeta!
-              : 'Tracked yield pool synced from the backend pool board.',
+              ? pools[index].poolMeta
+              : null,
           tags: [
             pools[index].chain,
             pools[index].symbol,
