@@ -4,38 +4,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-03-11",
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "stably-db",
-      "database_id": "replace-with-real-d1-id"
-    }
+      "database_id": "26e0f8ed-5757-45f6-9a04-63460c784bae",
+    },
   ],
-  "kv_namespaces": [
-    {
-      "binding": "CACHE",
-      "id": "replace-with-real-kv-id"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "ASSETS",
-      "bucket_name": "stably-assets"
-    }
-  ],
-  "queues": {
-    "producers": [
-      {
-        "binding": "ALERT_QUEUE",
-        "queue": "stably-alerts"
-      }
-    ]
-  },
   "triggers": {
-    "crons": [
-      "*/15 * * * *"
-    ]
-  }
+    "crons": ["*/15 * * * *"],
+  },
 }

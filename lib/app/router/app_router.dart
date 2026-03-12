@@ -7,6 +7,7 @@ import 'package:stably_app/features/discover/presentation/discover_page.dart';
 import 'package:stably_app/features/home/presentation/home_page.dart';
 import 'package:stably_app/features/portfolio/presentation/portfolio_page.dart';
 import 'package:stably_app/features/settings/presentation/settings_page.dart';
+import 'package:stably_app/features/stablecoins/presentation/stablecoin_detail_page.dart';
 import 'package:stably_app/shared/widgets/app_shell_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -84,6 +85,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRoute.settings.name,
         builder: (context, state) => const SettingsPage(),
       ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: AppRoute.stablecoinDetail.path,
+        name: AppRoute.stablecoinDetail.name,
+        builder: (context, state) => StablecoinDetailPage(
+          stablecoinId: state.pathParameters['id'] ?? '',
+          highlightedChain: state.uri.queryParameters['chain'],
+        ),
+      ),
     ],
   );
 });
@@ -94,7 +104,8 @@ enum AppRoute {
   allocate('allocate', '/allocate'),
   portfolio('portfolio', '/portfolio'),
   alerts('alerts', '/alerts'),
-  settings('settings', '/settings');
+  settings('settings', '/settings'),
+  stablecoinDetail('stablecoinDetail', '/stablecoins/:id');
 
   const AppRoute(this.name, this.path);
 

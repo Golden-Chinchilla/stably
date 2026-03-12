@@ -15,19 +15,24 @@ class AppPageScaffold extends ConsumerWidget {
     required this.subtitle,
     required this.children,
     this.showSettingsButton = true,
+    this.onRefresh,
   });
 
   final String title;
   final String subtitle;
   final List<Widget> children;
   final bool showSettingsButton;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
-    return CustomScrollView(
+    final scrollView = CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
@@ -144,6 +149,15 @@ class AppPageScaffold extends ConsumerWidget {
           ),
         ),
       ],
+    );
+
+    if (onRefresh == null) {
+      return scrollView;
+    }
+
+    return RefreshIndicator.adaptive(
+      onRefresh: onRefresh!,
+      child: scrollView,
     );
   }
 }
