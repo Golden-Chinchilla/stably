@@ -6,6 +6,7 @@ import 'package:stably_app/app/providers/app_state_providers.dart';
 import 'package:stably_app/app/router/app_router.dart';
 import 'package:stably_app/shared/design/app_spacing.dart';
 import 'package:stably_app/shared/design/app_theme_tokens.dart';
+import 'package:stably_app/shared/widgets/ambient_backdrop.dart';
 import 'package:stably_app/shared/widgets/pill_button.dart';
 
 class AppPageScaffold extends ConsumerWidget {
@@ -28,6 +29,7 @@ class AppPageScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
+    final canPop = context.canPop();
 
     final scrollView = CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(
@@ -47,6 +49,19 @@ class AppPageScaffold extends ConsumerWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (canPop) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, right: 12),
+                            child: IconButton(
+                              icon: const Icon(CupertinoIcons.back),
+                              onPressed: () => context.pop(),
+                              style: IconButton.styleFrom(
+                                backgroundColor: tokens.surface,
+                                foregroundColor: tokens.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +72,9 @@ class AppPageScaffold extends ConsumerWidget {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: tokens.primarySubtle.withAlpha(220),
+                                  color: tokens.primarySubtle.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   borderRadius: BorderRadius.circular(
                                     AppSpacing.radiusPill,
                                   ),
@@ -71,23 +88,25 @@ class AppPageScaffold extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(title),
+                              Text(title, style: theme.textTheme.displaySmall),
                               const SizedBox(height: 4),
-                              Text(
-                                subtitle,
-                                style: theme.textTheme.bodySmall,
-                              ),
+                              Text(subtitle, style: theme.textTheme.bodySmall),
                             ],
                           ),
                         ),
                         if (showSettingsButton && !stackHeader) ...[
                           const SizedBox(width: 12),
                           PillButton(
-                            label: theme.brightness == Brightness.dark ? 'Light' : 'Dark',
-                            icon: theme.brightness == Brightness.dark ? CupertinoIcons.sun_max : CupertinoIcons.moon,
+                            label: theme.brightness == Brightness.dark
+                                ? 'Light'
+                                : 'Dark',
+                            icon: theme.brightness == Brightness.dark
+                                ? CupertinoIcons.sun_max
+                                : CupertinoIcons.moon,
                             isPrimary: false,
                             compact: true,
-                            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                            onPressed: () =>
+                                ref.read(themeModeProvider.notifier).toggle(),
                           ),
                           const SizedBox(width: 12),
                           PillButton(
@@ -106,11 +125,16 @@ class AppPageScaffold extends ConsumerWidget {
                       Row(
                         children: [
                           PillButton(
-                            label: theme.brightness == Brightness.dark ? 'Light' : 'Dark',
-                            icon: theme.brightness == Brightness.dark ? CupertinoIcons.sun_max : CupertinoIcons.moon,
+                            label: theme.brightness == Brightness.dark
+                                ? 'Light'
+                                : 'Dark',
+                            icon: theme.brightness == Brightness.dark
+                                ? CupertinoIcons.sun_max
+                                : CupertinoIcons.moon,
                             isPrimary: false,
                             compact: true,
-                            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+                            onPressed: () =>
+                                ref.read(themeModeProvider.notifier).toggle(),
                           ),
                           const SizedBox(width: 12),
                           PillButton(
@@ -136,28 +160,42 @@ class AppPageScaffold extends ConsumerWidget {
             bottom: AppSpacing.page + 12,
           ),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final childIndex = index ~/ 2;
-                if (index.isOdd) {
-                  return const SizedBox(height: AppSpacing.section);
-                }
-                return children[childIndex];
-              },
-              childCount: children.isEmpty ? 0 : children.length * 2 - 1,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final childIndex = index ~/ 2;
+              if (index.isOdd) {
+                return const SizedBox(height: AppSpacing.section);
+              }
+              return children[childIndex];
+            }, childCount: children.isEmpty ? 0 : children.length * 2 - 1),
           ),
         ),
       ],
     );
 
-    if (onRefresh == null) {
-      return scrollView;
-    }
+    final isWide = MediaQuery.sizeOf(context).width >= AppSpacing.webBreakpoint;
+    final body = onRefresh == null
+        ? scrollView
+        : RefreshIndicator.adaptive(onRefresh: onRefresh!, child: scrollView);
 
-    return RefreshIndicator.adaptive(
-      onRefresh: onRefresh!,
-      child: scrollView,
+    return AmbientBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: AppSpacing.maxContentWidth,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? AppSpacing.page + 8 : AppSpacing.page,
+                ),
+                child: body,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

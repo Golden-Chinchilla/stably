@@ -20,7 +20,38 @@ class PortfolioRepository {
 
   Future<void> savePositions(List<PortfolioPosition> positions) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_positionsStorageKey, PortfolioPosition.encodeList(positions));
+    await preferences.setString(
+      _positionsStorageKey,
+      PortfolioPosition.encodeList(positions),
+    );
+  }
+
+  Future<List<PortfolioPosition>> addPosition(
+    PortfolioPosition position,
+  ) async {
+    final current = await loadPositions();
+    final updated = [...current, position];
+    await savePositions(updated);
+    return updated;
+  }
+
+  Future<List<PortfolioPosition>> updatePosition(
+    PortfolioPosition position,
+  ) async {
+    final current = await loadPositions();
+    final updated = [
+      for (final item in current)
+        if (item.id == position.id) position else item,
+    ];
+    await savePositions(updated);
+    return updated;
+  }
+
+  Future<List<PortfolioPosition>> deletePosition(String id) async {
+    final current = await loadPositions();
+    final updated = current.where((item) => item.id != id).toList();
+    await savePositions(updated);
+    return updated;
   }
 
   Future<void> clearPositions() async {

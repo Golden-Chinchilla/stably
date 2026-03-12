@@ -8,7 +8,11 @@ String formatCompactNumber(num? value, {String fallback = '—'}) {
   return NumberFormat.compact().format(value);
 }
 
-String formatCurrency(num? value, {String symbol = '\$', String fallback = '—'}) {
+String formatCurrency(
+  num? value, {
+  String symbol = '\$',
+  String fallback = '—',
+}) {
   if (value == null) {
     return fallback;
   }
@@ -16,7 +20,11 @@ String formatCurrency(num? value, {String symbol = '\$', String fallback = '—'
   return '$symbol${NumberFormat.compact().format(value)}';
 }
 
-String formatPercent(num? value, {int fractionDigits = 2, String fallback = '—'}) {
+String formatPercent(
+  num? value, {
+  int fractionDigits = 2,
+  String fallback = '—',
+}) {
   if (value == null) {
     return fallback;
   }

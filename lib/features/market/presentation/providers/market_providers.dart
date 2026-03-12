@@ -18,11 +18,13 @@ final stablecoinsProvider = FutureProvider<List<Stablecoin>>((ref) async {
 
 final stablecoinDetailProvider =
     FutureProvider.family<StablecoinDetail, String>((ref, stablecoinId) async {
-  final repository = ref.watch(marketRepositoryProvider);
-  return repository.fetchStablecoinDetail(stablecoinId);
-});
+      final repository = ref.watch(marketRepositoryProvider);
+      return repository.fetchStablecoinDetail(stablecoinId);
+    });
 
-final stablecoinChainsProvider = FutureProvider<List<StablecoinChain>>((ref) async {
+final stablecoinChainsProvider = FutureProvider<List<StablecoinChain>>((
+  ref,
+) async {
   final repository = ref.watch(marketRepositoryProvider);
   return repository.fetchStablecoinChains(limit: 12);
 });
@@ -34,16 +36,19 @@ final yieldPoolsProvider = FutureProvider<List<YieldPool>>((ref) async {
 
 final yieldPoolsBySymbolProvider =
     FutureProvider.family<List<YieldPool>, String>((ref, symbol) async {
-  final repository = ref.watch(marketRepositoryProvider);
-  return repository.fetchYieldPools(limit: 20, symbol: symbol);
-});
+      final repository = ref.watch(marketRepositoryProvider);
+      return repository.fetchYieldPools(limit: 20, symbol: symbol);
+    });
 
 final yieldPoolsBySymbolAndChainProvider =
-    FutureProvider.family<List<YieldPool>, ({String symbol, String? chain})>((ref, filter) async {
-  final repository = ref.watch(marketRepositoryProvider);
-  return repository.fetchYieldPools(
-    limit: 20,
-    symbol: filter.symbol,
-    chain: filter.chain,
-  );
-});
+    FutureProvider.family<List<YieldPool>, ({String symbol, String? chain})>((
+      ref,
+      filter,
+    ) async {
+      final repository = ref.watch(marketRepositoryProvider);
+      return repository.fetchYieldPools(
+        limit: 20,
+        symbol: filter.symbol,
+        chain: filter.chain,
+      );
+    });

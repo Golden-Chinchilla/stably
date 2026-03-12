@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { ensureSchema } from './lib/bootstrap';
 import { jsonError, jsonOk } from './lib/http';
@@ -9,6 +10,15 @@ import { stablecoinRoutes } from './routes/stablecoins';
 import { syncRoutes } from './routes/sync';
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Accept'],
+  }),
+);
 
 app.get('/', async (context) => {
   await ensureSchema(context.env);

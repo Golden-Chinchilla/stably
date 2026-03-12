@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stably_app/app/router/app_router.dart';
@@ -9,22 +10,43 @@ import 'package:stably_app/features/market/presentation/providers/market_provide
 import 'package:stably_app/shared/utils/formatters.dart';
 import 'package:stably_app/shared/widgets/app_empty_state.dart';
 import 'package:stably_app/shared/widgets/app_filter_chip.dart';
-import 'package:stably_app/shared/widgets/app_interactive_card.dart';
 import 'package:stably_app/shared/widgets/app_page_scaffold.dart';
+import 'package:stably_app/shared/widgets/app_search_field.dart';
 import 'package:stably_app/shared/widgets/app_skeleton.dart';
 import 'package:stably_app/shared/widgets/async_section_state.dart';
 import 'package:stably_app/shared/widgets/base_card.dart';
 import 'package:stably_app/shared/widgets/highlight_panel.dart';
 import 'package:stably_app/shared/widgets/insight_tile.dart';
 import 'package:stably_app/shared/widgets/opportunity_card.dart';
+import 'package:stably_app/shared/widgets/pill_button.dart';
 import 'package:stably_app/shared/widgets/risk_notice_card.dart';
 import 'package:stably_app/shared/widgets/section_block.dart';
 import 'package:stably_app/shared/widgets/status_tag.dart';
 
-class DiscoverPage extends ConsumerWidget {
+class DiscoverPage extends ConsumerStatefulWidget {
   const DiscoverPage({super.key});
 
-  Future<void> _refresh(WidgetRef ref) async {
+  @override
+  ConsumerState<DiscoverPage> createState() => _DiscoverPageState();
+}
+
+class _DiscoverPageState extends ConsumerState<DiscoverPage> {
+  late final TextEditingController _searchController;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
     await Future.wait([
       ref.refresh(yieldPoolsProvider.future),
       ref.refresh(stablecoinsProvider.future),
@@ -32,14 +54,14 @@ class DiscoverPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final poolsAsync = ref.watch(yieldPoolsProvider);
     final stablecoinsAsync = ref.watch(stablecoinsProvider);
 
     return AppPageScaffold(
       title: 'Yield Discovery',
       subtitle: 'Scan tracked stablecoins and the highest APY yield pools.',
-      onRefresh: () => _refresh(ref),
+      onRefresh: _refresh,
       children: [
         SectionBlock(
           title: 'Discovery Overview',
@@ -64,19 +86,33 @@ class DiscoverPage extends ConsumerWidget {
             loading: () => const AppHighlightPanelSkeleton(),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
-              onRetry: () => _refresh(ref),
+              onRetry: _refresh,
             ),
           ),
         ),
         SectionBlock(
+          title: 'Search',
+          subtitle:
+              'Filter stablecoins and yield pools by symbol, project, or chain.',
+          child: AppSearchField(
+            controller: _searchController,
+            placeholder: 'Search stablecoins, pools, or chains',
+            onChanged: (value) =>
+                setState(() => _query = value.trim().toLowerCase()),
+          ),
+        ),
+        SectionBlock(
           title: 'Stablecoin Filters',
-          subtitle: 'Open a stablecoin detail view directly from the tracked set.',
+          subtitle:
+              'Open a stablecoin detail view directly from the tracked set.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final stablecoin in stablecoins.take(5))
+                for (final stablecoin in _filterStablecoins(
+                  stablecoins,
+                ).take(5))
                   _StablecoinChip(stablecoin: stablecoin),
               ],
             ),
@@ -92,39 +128,44 @@ class DiscoverPage extends ConsumerWidget {
             ),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
-              onRetry: () => _refresh(ref),
+              onRetry: _refresh,
             ),
           ),
         ),
         SectionBlock(
           title: 'Stablecoin Coverage',
-          subtitle: 'Jump from discovery into stablecoin detail and chain coverage.',
+          subtitle:
+              'Jump from discovery into stablecoin detail and chain coverage.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => _StablecoinBoard(
-              stablecoins: stablecoins.take(4).toList(),
+              stablecoins: _filterStablecoins(stablecoins).take(4).toList(),
             ),
             loading: () => const AppListSkeleton(items: 4),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
-              onRetry: () => _refresh(ref),
+              onRetry: _refresh,
             ),
           ),
         ),
         SectionBlock(
           title: 'Yield Pool Board',
-          subtitle: 'Tracked yield pools ranked by APY, with stablecoin detail deep links.',
+          subtitle:
+              'Tracked yield pools ranked by APY, with stablecoin detail deep links.',
           child: poolsAsync.when(
             data: (pools) {
-              if (pools.isEmpty) {
+              final filteredPools = _filterPools(pools);
+
+              if (filteredPools.isEmpty) {
                 return const AppEmptyState(
                   title: 'No yield pools yet',
-                  description: 'Run a backend sync to populate the tracked yield pool board.',
+                  description:
+                      'No tracked yield pools match the current search or market set.',
                   icon: CupertinoIcons.search_circle,
                 );
               }
 
-              final topPool = pools.first;
-              final baselinePool = pools.firstWhere(
+              final topPool = filteredPools.first;
+              final baselinePool = filteredPools.firstWhere(
                 (pool) => pool.project.toLowerCase().contains('aave'),
                 orElse: () => topPool,
               );
@@ -147,13 +188,14 @@ class DiscoverPage extends ConsumerWidget {
                           icon: CupertinoIcons.cube_box_fill,
                           label: 'Baseline pool',
                           value: formatPercent(baselinePool.apy),
-                          caption: '${baselinePool.project} · ${baselinePool.chain}',
+                          caption:
+                              '${baselinePool.project} · ${baselinePool.chain}',
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _DiscoverPoolList(pools: pools.take(3).toList()),
+                  _DiscoverPoolList(pools: filteredPools.take(3).toList()),
                 ],
               );
             },
@@ -172,7 +214,7 @@ class DiscoverPage extends ConsumerWidget {
             ),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
-              onRetry: () => _refresh(ref),
+              onRetry: _refresh,
             ),
           ),
         ),
@@ -199,6 +241,35 @@ class DiscoverPage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  List<Stablecoin> _filterStablecoins(List<Stablecoin> stablecoins) {
+    if (_query.isEmpty) {
+      return stablecoins;
+    }
+    return stablecoins.where((stablecoin) {
+      final haystack = [
+        stablecoin.symbol,
+        stablecoin.name,
+        ...stablecoin.chains,
+      ].join(' ').toLowerCase();
+      return haystack.contains(_query);
+    }).toList();
+  }
+
+  List<YieldPool> _filterPools(List<YieldPool> pools) {
+    if (_query.isEmpty) {
+      return pools;
+    }
+    return pools.where((pool) {
+      final haystack = [
+        pool.project,
+        pool.symbol,
+        pool.chain,
+        pool.poolMeta ?? '',
+      ].join(' ').toLowerCase();
+      return haystack.contains(_query);
+    }).toList();
   }
 }
 
@@ -229,18 +300,24 @@ class _StablecoinBoard extends StatelessWidget {
     if (stablecoins.isEmpty) {
       return const AppEmptyState(
         title: 'No stablecoins yet',
-        description: 'Run a backend sync to populate the tracked stablecoin board.',
+        description:
+            'Run a backend sync to populate the tracked stablecoin board.',
         icon: CupertinoIcons.money_dollar_circle,
       );
     }
 
-    return Column(
-      children: [
-        for (var index = 0; index < stablecoins.length; index++) ...[
-          _StablecoinBoardCard(stablecoin: stablecoins[index]),
-          if (index != stablecoins.length - 1) const SizedBox(height: 12),
-        ],
+    final cards = <Widget>[
+      for (var index = 0; index < stablecoins.length; index++) ...[
+        _StablecoinBoardCard(stablecoin: stablecoins[index]),
+        if (index != stablecoins.length - 1) const SizedBox(height: 12),
       ],
+    ];
+
+    return Column(
+      children: cards
+          .animate(interval: 50.ms)
+          .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+          .slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutCubic),
     );
   }
 }
@@ -252,44 +329,71 @@ class _StablecoinBoardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppInteractiveCard(
-      onTap: () => context.pushNamed(
-        AppRoute.stablecoinDetail.name,
-        pathParameters: {'id': stablecoin.id},
-      ),
-      child: BaseCard(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return BaseCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stablecoin.symbol,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      stablecoin.name,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    stablecoin.symbol,
+                    formatCurrency(stablecoin.circulatingPeggedUsd),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    stablecoin.name,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  const SizedBox(height: 6),
+                  StatusTag(label: '${stablecoin.chains.length} chains'),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatCurrency(stablecoin.circulatingPeggedUsd),
-                  style: Theme.of(context).textTheme.titleMedium,
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: PillButton(
+                  label: 'Detail',
+                  icon: CupertinoIcons.doc_text_search,
+                  compact: true,
+                  isPrimary: false,
+                  onPressed: () => context.pushNamed(
+                    AppRoute.stablecoinDetail.name,
+                    pathParameters: {'id': stablecoin.id},
+                  ),
                 ),
-                const SizedBox(height: 6),
-                StatusTag(label: '${stablecoin.chains.length} chains'),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: PillButton(
+                  label: 'Allocate',
+                  icon: CupertinoIcons.chart_pie,
+                  compact: true,
+                  onPressed: () => context.goNamed(
+                    AppRoute.allocate.name,
+                    queryParameters: {'symbol': stablecoin.symbol},
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -306,53 +410,61 @@ class _DiscoverPoolList extends StatelessWidget {
 
     final inherited = ProviderScope.containerOf(context, listen: false)
         .read(stablecoinsProvider)
-        .maybeWhen(
-          data: (items) => items,
-          orElse: () => const <Stablecoin>[],
-        );
+        .maybeWhen(data: (items) => items, orElse: () => const <Stablecoin>[]);
 
     for (final stablecoin in inherited) {
       stablecoins[stablecoin.symbol] = stablecoin;
     }
 
-    return Column(
-      children: [
-        for (var index = 0; index < pools.length; index++) ...[
-          OpportunityCard(
-            icon: index == 0
-                ? CupertinoIcons.sparkles
-                : index == 1
-                    ? CupertinoIcons.cube_box
-                    : CupertinoIcons.flame,
-            platform: pools[index].project,
-            asset: '${pools[index].symbol} · ${pools[index].chain}',
-            apy: formatPercent(pools[index].apy),
-            summary: pools[index].poolMeta?.isNotEmpty == true
-                ? pools[index].poolMeta!
-                : 'Tracked yield pool synced from the backend pool board.',
-            tags: [
-              pools[index].chain,
-              pools[index].symbol,
-              if ((pools[index].tvlUsd ?? 0) > 0) formatCurrency(pools[index].tvlUsd),
-            ],
-            tone: (pools[index].apy ?? 0) >= 10 ? StatusTagTone.success : StatusTagTone.info,
-            onTap: () {
-              final stablecoin =
-                  stablecoins[pools[index].symbol.toUpperCase()] ?? stablecoins[pools[index].symbol];
-              if (stablecoin == null) {
-                return;
-              }
+    final cards = <Widget>[
+      for (var index = 0; index < pools.length; index++) ...[
+        OpportunityCard(
+          icon: index == 0
+              ? CupertinoIcons.sparkles
+              : index == 1
+              ? CupertinoIcons.cube_box
+              : CupertinoIcons.flame,
+          platform: pools[index].project,
+          asset: '${pools[index].symbol} · ${pools[index].chain}',
+          apy: formatPercent(pools[index].apy),
+          summary: pools[index].poolMeta?.isNotEmpty == true
+              ? pools[index].poolMeta!
+              : 'Tracked yield pool synced from the backend pool board.',
+          tags: [
+            pools[index].chain,
+            pools[index].symbol,
+            if ((pools[index].tvlUsd ?? 0) > 0)
+              formatCurrency(pools[index].tvlUsd),
+          ],
+          tone: (pools[index].apy ?? 0) >= 10
+              ? StatusTagTone.success
+              : StatusTagTone.info,
+          onTap: () {
+            final stablecoin =
+                stablecoins[pools[index].symbol.toUpperCase()] ??
+                stablecoins[pools[index].symbol];
+            if (stablecoin == null) {
+              return;
+            }
 
-              context.pushNamed(
-                AppRoute.stablecoinDetail.name,
-                pathParameters: {'id': stablecoin.id},
-                queryParameters: {'chain': pools[index].chain},
-              );
-            },
-          ),
-          if (index != pools.length - 1) const SizedBox(height: 16),
-        ],
+            context.goNamed(
+              AppRoute.allocate.name,
+              queryParameters: {
+                'symbol': stablecoin.symbol,
+                'chain': pools[index].chain,
+              },
+            );
+          },
+        ),
+        if (index != pools.length - 1) const SizedBox(height: 16),
       ],
+    ];
+
+    return Column(
+      children: cards
+          .animate(interval: 50.ms)
+          .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+          .slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutCubic),
     );
   }
 }

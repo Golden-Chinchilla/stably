@@ -33,7 +33,8 @@ class Stablecoin {
   final String? pegType;
   final String updatedAt;
 
-  double? get circulatingPeggedUsd => (circulating['peggedUSD'] as num?)?.toDouble();
+  double? get circulatingPeggedUsd =>
+      (circulating['peggedUSD'] as num?)?.toDouble();
 
   factory Stablecoin.fromJson(Map<String, dynamic> json) {
     return Stablecoin(
@@ -42,12 +43,24 @@ class Stablecoin {
       symbol: json['symbol'] as String,
       geckoId: json['geckoId'] as String?,
       price: (json['price'] as num?)?.toDouble(),
-      chains: (json['chains'] as List? ?? const []).map((item) => item.toString()).toList(),
-      circulating: Map<String, dynamic>.from(json['circulating'] as Map? ?? const {}),
-      circulatingPrevDay: Map<String, dynamic>.from(json['circulatingPrevDay'] as Map? ?? const {}),
-      circulatingPrevWeek: Map<String, dynamic>.from(json['circulatingPrevWeek'] as Map? ?? const {}),
-      circulatingPrevMonth: Map<String, dynamic>.from(json['circulatingPrevMonth'] as Map? ?? const {}),
-      chainCirculating: Map<String, dynamic>.from(json['chainCirculating'] as Map? ?? const {}),
+      chains: (json['chains'] as List? ?? const [])
+          .map((item) => item.toString())
+          .toList(),
+      circulating: Map<String, dynamic>.from(
+        json['circulating'] as Map? ?? const {},
+      ),
+      circulatingPrevDay: Map<String, dynamic>.from(
+        json['circulatingPrevDay'] as Map? ?? const {},
+      ),
+      circulatingPrevWeek: Map<String, dynamic>.from(
+        json['circulatingPrevWeek'] as Map? ?? const {},
+      ),
+      circulatingPrevMonth: Map<String, dynamic>.from(
+        json['circulatingPrevMonth'] as Map? ?? const {},
+      ),
+      chainCirculating: Map<String, dynamic>.from(
+        json['chainCirculating'] as Map? ?? const {},
+      ),
       pegMechanism: json['pegMechanism'] as String?,
       priceSource: json['priceSource'] as String?,
       pegType: json['pegType'] as String?,

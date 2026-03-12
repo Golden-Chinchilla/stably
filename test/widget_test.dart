@@ -12,11 +12,15 @@ import 'package:stably_app/main.dart';
 import 'package:stably_app/shared/network/api_client.dart';
 
 void main() {
-  testWidgets('renders shell navigation and home content', (WidgetTester tester) async {
+  testWidgets('renders shell navigation and home content', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          marketRepositoryProvider.overrideWith((ref) => _FakeMarketRepository()),
+          marketRepositoryProvider.overrideWith(
+            (ref) => _FakeMarketRepository(),
+          ),
         ],
         child: const StablyBootstrap(),
       ),
@@ -27,7 +31,10 @@ void main() {
     expect(find.byIcon(CupertinoIcons.home), findsOneWidget);
     expect(find.byIcon(CupertinoIcons.compass_fill), findsOneWidget);
     expect(find.byIcon(CupertinoIcons.chart_bar_alt_fill), findsOneWidget);
-    expect(find.byIcon(CupertinoIcons.money_dollar_circle_fill), findsOneWidget);
+    expect(
+      find.byIcon(CupertinoIcons.money_dollar_circle_fill),
+      findsOneWidget,
+    );
     expect(find.byIcon(CupertinoIcons.bell_fill), findsOneWidget);
     expect(find.text('Market Overview'), findsOneWidget);
     expect(find.textContaining('USDC'), findsWidgets);
@@ -52,9 +59,15 @@ class _FakeMarketRepository extends MarketRepository {
       'circulatingPrevWeek': {'peggedUSD': 55300000000},
       'circulatingPrevMonth': {'peggedUSD': 54800000000},
       'chainCirculating': {
-        'Ethereum': {'current': {'peggedUSD': 24000000000}},
-        'Base': {'current': {'peggedUSD': 18000000000}},
-        'Arbitrum': {'current': {'peggedUSD': 14000000000}},
+        'Ethereum': {
+          'current': {'peggedUSD': 24000000000},
+        },
+        'Base': {
+          'current': {'peggedUSD': 18000000000},
+        },
+        'Arbitrum': {
+          'current': {'peggedUSD': 14000000000},
+        },
       },
       'pegMechanism': 'fiat-backed',
       'priceSource': 'defillama',
@@ -73,8 +86,12 @@ class _FakeMarketRepository extends MarketRepository {
       'circulatingPrevWeek': {'peggedUSD': 182000000000},
       'circulatingPrevMonth': {'peggedUSD': 181000000000},
       'chainCirculating': {
-        'Tron': {'current': {'peggedUSD': 85000000000}},
-        'Ethereum': {'current': {'peggedUSD': 78000000000}},
+        'Tron': {
+          'current': {'peggedUSD': 85000000000},
+        },
+        'Ethereum': {
+          'current': {'peggedUSD': 78000000000},
+        },
       },
       'pegMechanism': 'fiat-backed',
       'priceSource': 'defillama',
@@ -144,7 +161,9 @@ class _FakeMarketRepository extends MarketRepository {
 
   @override
   Future<StablecoinDetail> fetchStablecoinDetail(String stablecoinId) async {
-    final stablecoin = _stablecoins.firstWhere((item) => item.id == stablecoinId);
+    final stablecoin = _stablecoins.firstWhere(
+      (item) => item.id == stablecoinId,
+    );
     final chainData = <StablecoinChain>[
       if (stablecoin.symbol == 'USDC') ...[
         StablecoinChain.fromJson({
@@ -170,10 +189,7 @@ class _FakeMarketRepository extends MarketRepository {
       ],
     ];
 
-    return StablecoinDetail(
-      stablecoin: stablecoin,
-      chainData: chainData,
-    );
+    return StablecoinDetail(stablecoin: stablecoin, chainData: chainData);
   }
 
   @override

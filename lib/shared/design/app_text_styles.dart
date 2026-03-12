@@ -4,8 +4,9 @@ import 'package:stably_app/shared/design/app_theme_tokens.dart';
 
 class AppTextStyles {
   static TextTheme textTheme(AppThemeTokens colors) {
-    final titleColor =
-        colors.background.computeLuminance() < 0.2 ? colors.textPrimary : colors.primary;
+    final titleColor = colors.background.computeLuminance() < 0.2
+        ? colors.textPrimary
+        : colors.primary;
 
     return TextTheme(
       displaySmall: GoogleFonts.outfit(

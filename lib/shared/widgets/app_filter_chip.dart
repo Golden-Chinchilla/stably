@@ -23,7 +23,9 @@ class AppFilterChip extends StatelessWidget {
     final backgroundColor = selected ? tokens.primary : tokens.primarySubtle;
     final foregroundColor = selected
         ? Colors.white
-        : (theme.brightness == Brightness.dark ? tokens.textPrimary : tokens.primary);
+        : (theme.brightness == Brightness.dark
+              ? tokens.textPrimary
+              : tokens.primary);
 
     final chip = AnimatedContainer(
       duration: const Duration(milliseconds: 180),

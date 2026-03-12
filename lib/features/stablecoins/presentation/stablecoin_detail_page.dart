@@ -18,6 +18,7 @@ import 'package:stably_app/shared/widgets/info_list_card.dart';
 import 'package:stably_app/shared/widgets/opportunity_card.dart';
 import 'package:stably_app/shared/widgets/section_block.dart';
 import 'package:stably_app/shared/widgets/status_tag.dart';
+import 'package:stably_app/shared/widgets/trend_line_chart_card.dart';
 
 class StablecoinDetailPage extends ConsumerWidget {
   const StablecoinDetailPage({
@@ -30,8 +31,13 @@ class StablecoinDetailPage extends ConsumerWidget {
   final String? highlightedChain;
 
   Future<void> _refresh(WidgetRef ref) async {
-    final detail = await ref.refresh(stablecoinDetailProvider(stablecoinId).future);
-    final filter = (symbol: detail.stablecoin.symbol, chain: highlightedChain?.trim());
+    final detail = await ref.refresh(
+      stablecoinDetailProvider(stablecoinId).future,
+    );
+    final filter = (
+      symbol: detail.stablecoin.symbol,
+      chain: highlightedChain?.trim(),
+    );
     ref.invalidate(yieldPoolsBySymbolAndChainProvider(filter));
     await ref.read(yieldPoolsBySymbolAndChainProvider(filter).future);
   }
@@ -44,11 +50,15 @@ class StablecoinDetailPage extends ConsumerWidget {
       data: (detail) {
         final selectedChain = highlightedChain?.trim();
         final poolsAsync = ref.watch(
-          yieldPoolsBySymbolAndChainProvider(
-            (symbol: detail.stablecoin.symbol, chain: selectedChain),
-          ),
+          yieldPoolsBySymbolAndChainProvider((
+            symbol: detail.stablecoin.symbol,
+            chain: selectedChain,
+          )),
         );
-        final visibleChains = _sortChains(detail.chainData, selectedChain).take(6).toList();
+        final visibleChains = _sortChains(
+          detail.chainData,
+          selectedChain,
+        ).take(6).toList();
 
         return AppPageScaffold(
           title: detail.stablecoin.symbol,
@@ -82,22 +92,22 @@ class StablecoinDetailPage extends ConsumerWidget {
                   (
                     label: 'Price',
                     value: detail.stablecoin.price?.toStringAsFixed(4) ?? '—',
-                    hint: 'Latest price snapshot.'
+                    hint: 'Latest price snapshot.',
                   ),
                   (
                     label: 'Peg mechanism',
                     value: detail.stablecoin.pegMechanism ?? 'Unknown',
-                    hint: 'Mechanism classification from DefiLlama.'
+                    hint: 'Mechanism classification from DefiLlama.',
                   ),
                   (
                     label: 'Price source',
                     value: detail.stablecoin.priceSource ?? 'Unknown',
-                    hint: 'Upstream source for the displayed price.'
+                    hint: 'Upstream source for the displayed price.',
                   ),
                   (
                     label: 'Gecko ID',
                     value: detail.stablecoin.geckoId ?? '—',
-                    hint: 'External asset mapping key.'
+                    hint: 'External asset mapping key.',
                   ),
                 ],
               ),
@@ -105,36 +115,18 @@ class StablecoinDetailPage extends ConsumerWidget {
             SectionBlock(
               title: 'Circulating USD Trend',
               subtitle: 'Current scale with day, week, and month snapshots.',
-              child: InfoListCard(
-                title: 'Scale snapshots',
-                rows: [
-                  (
-                    label: 'Current',
-                    value: formatCurrency(detail.stablecoin.circulatingPeggedUsd),
-                    hint: 'Current circulating USD.'
-                  ),
-                  (
-                    label: 'Previous day',
-                    value: formatCurrency(
-                      (detail.stablecoin.circulatingPrevDay['peggedUSD'] as num?)?.toDouble(),
-                    ),
-                    hint: 'Previous day snapshot.'
-                  ),
-                  (
-                    label: 'Previous week',
-                    value: formatCurrency(
-                      (detail.stablecoin.circulatingPrevWeek['peggedUSD'] as num?)?.toDouble(),
-                    ),
-                    hint: 'Previous week snapshot.'
-                  ),
-                  (
-                    label: 'Previous month',
-                    value: formatCurrency(
-                      (detail.stablecoin.circulatingPrevMonth['peggedUSD'] as num?)?.toDouble(),
-                    ),
-                    hint: 'Previous month snapshot.'
-                  ),
-                ],
+              child: TrendLineChartCard(
+                currentUsd: detail.stablecoin.circulatingPeggedUsd,
+                prevDayUsd:
+                    (detail.stablecoin.circulatingPrevDay['peggedUSD'] as num?)
+                        ?.toDouble(),
+                prevWeekUsd:
+                    (detail.stablecoin.circulatingPrevWeek['peggedUSD'] as num?)
+                        ?.toDouble(),
+                prevMonthUsd:
+                    (detail.stablecoin.circulatingPrevMonth['peggedUSD']
+                            as num?)
+                        ?.toDouble(),
               ),
             ),
             SectionBlock(
@@ -172,13 +164,19 @@ class StablecoinDetailPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Column(
                     children: [
-                      for (var index = 0; index < visibleChains.length; index++) ...[
+                      for (
+                        var index = 0;
+                        index < visibleChains.length;
+                        index++
+                      ) ...[
                         _ChainRowCard(
                           stablecoinId: stablecoinId,
                           chain: visibleChains[index],
-                          highlighted: visibleChains[index].chain == selectedChain,
+                          highlighted:
+                              visibleChains[index].chain == selectedChain,
                         ),
-                        if (index != visibleChains.length - 1) const SizedBox(height: 12),
+                        if (index != visibleChains.length - 1)
+                          const SizedBox(height: 12),
                       ],
                     ],
                   ),
@@ -207,13 +205,19 @@ class StablecoinDetailPage extends ConsumerWidget {
                   final visiblePools = pools.take(3).toList();
                   return Column(
                     children: [
-                      for (var index = 0; index < visiblePools.length; index++) ...[
+                      for (
+                        var index = 0;
+                        index < visiblePools.length;
+                        index++
+                      ) ...[
                         OpportunityCard(
                           icon: CupertinoIcons.sparkles,
                           platform: visiblePools[index].project,
-                          asset: '${visiblePools[index].symbol} · ${visiblePools[index].chain}',
+                          asset:
+                              '${visiblePools[index].symbol} · ${visiblePools[index].chain}',
                           apy: formatPercent(visiblePools[index].apy),
-                          summary: visiblePools[index].poolMeta?.isNotEmpty == true
+                          summary:
+                              visiblePools[index].poolMeta?.isNotEmpty == true
                               ? visiblePools[index].poolMeta!
                               : 'Tracked yield pool currently linked to this stablecoin symbol.',
                           tags: [
@@ -228,12 +232,15 @@ class StablecoinDetailPage extends ConsumerWidget {
                           onTap: selectedChain == visiblePools[index].chain
                               ? null
                               : () => context.goNamed(
-                                    AppRoute.stablecoinDetail.name,
-                                    pathParameters: {'id': stablecoinId},
-                                    queryParameters: {'chain': visiblePools[index].chain},
-                                  ),
+                                  AppRoute.stablecoinDetail.name,
+                                  pathParameters: {'id': stablecoinId},
+                                  queryParameters: {
+                                    'chain': visiblePools[index].chain,
+                                  },
+                                ),
                         ),
-                        if (index != visiblePools.length - 1) const SizedBox(height: 16),
+                        if (index != visiblePools.length - 1)
+                          const SizedBox(height: 16),
                       ],
                     ],
                   );
@@ -302,13 +309,15 @@ class _ChainRowCard extends StatelessWidget {
       onTap: highlighted
           ? null
           : () => context.goNamed(
-                AppRoute.stablecoinDetail.name,
-                pathParameters: {'id': stablecoinId},
-                queryParameters: {'chain': chain.chain},
-              ),
+              AppRoute.stablecoinDetail.name,
+              pathParameters: {'id': stablecoinId},
+              queryParameters: {'chain': chain.chain},
+            ),
       child: BaseCard(
         backgroundColor: highlighted
-            ? Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(120)
+            ? Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withAlpha(120)
             : null,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +381,10 @@ StatusTagTone _toneForPeg(String? pegMechanism) {
   };
 }
 
-List<StablecoinChain> _sortChains(List<StablecoinChain> chains, String? highlightedChain) {
+List<StablecoinChain> _sortChains(
+  List<StablecoinChain> chains,
+  String? highlightedChain,
+) {
   final sorted = [...chains];
   sorted.sort((left, right) {
     if (highlightedChain != null) {

@@ -38,10 +38,7 @@ class RiskNoticeCard extends StatelessWidget {
             width: 10,
             height: 10,
             margin: const EdgeInsets.only(top: 6),
-            decoration: BoxDecoration(
-              color: accent,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
           ),
           const SizedBox(width: AppSpacing.item),
           Expanded(

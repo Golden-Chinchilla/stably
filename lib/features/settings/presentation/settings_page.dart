@@ -25,7 +25,8 @@ class SettingsPage extends ConsumerWidget {
       children: [
         const SectionBlock(
           title: 'Product tone',
-          subtitle: 'Settings should still feel designed, not like a utility page.',
+          subtitle:
+              'Settings should still feel designed, not like a utility page.',
           child: HighlightPanel(
             eyebrow: 'Preferences',
             title: 'Switch between warm daylight and quiet luxury dark mode.',

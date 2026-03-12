@@ -3,7 +3,8 @@ import 'package:stably_app/shared/design/app_text_styles.dart';
 import 'package:stably_app/shared/design/app_theme_tokens.dart';
 
 class AppTheme {
-  static ThemeData light() => _buildTheme(Brightness.light, AppThemeTokens.light);
+  static ThemeData light() =>
+      _buildTheme(Brightness.light, AppThemeTokens.light);
 
   static ThemeData dark() => _buildTheme(Brightness.dark, AppThemeTokens.dark);
 
@@ -15,7 +16,9 @@ class AppTheme {
     );
     final colorScheme = baseScheme.copyWith(
       primary: colors.primary,
-      onPrimary: brightness == Brightness.dark ? colors.textPrimary : Colors.white,
+      onPrimary: brightness == Brightness.dark
+          ? colors.textPrimary
+          : Colors.white,
       secondary: colors.success,
       onSecondary: colors.background,
       tertiary: colors.info,

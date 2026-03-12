@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:stably_app/shared/design/app_theme_tokens.dart';
 
 class AmbientBackdrop extends StatelessWidget {
-  const AmbientBackdrop({
-    super.key,
-    required this.child,
-  });
+  const AmbientBackdrop({super.key, required this.child});
 
   final Widget child;
 
@@ -21,26 +18,17 @@ class AmbientBackdrop extends StatelessWidget {
         Positioned(
           top: -120,
           left: -60,
-          child: _Orb(
-            color: tokens.primary.withAlpha(68),
-            size: 260,
-          ),
+          child: _Orb(color: tokens.primary.withAlpha(68), size: 260),
         ),
         Positioned(
           top: 90,
           right: -90,
-          child: _Orb(
-            color: tokens.info.withAlpha(40),
-            size: 220,
-          ),
+          child: _Orb(color: tokens.info.withAlpha(40), size: 220),
         ),
         Positioned(
           bottom: 120,
           left: 20,
-          child: _Orb(
-            color: tokens.success.withAlpha(26),
-            size: 180,
-          ),
+          child: _Orb(color: tokens.success.withAlpha(26), size: 180),
         ),
         child,
       ],
@@ -49,10 +37,7 @@ class AmbientBackdrop extends StatelessWidget {
 }
 
 class _Orb extends StatelessWidget {
-  const _Orb({
-    required this.color,
-    required this.size,
-  });
+  const _Orb({required this.color, required this.size});
 
   final Color color;
   final double size;
@@ -65,10 +50,7 @@ class _Orb extends StatelessWidget {
         child: Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
       ),
     );

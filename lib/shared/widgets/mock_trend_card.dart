@@ -3,11 +3,7 @@ import 'package:stably_app/shared/design/app_theme_tokens.dart';
 import 'package:stably_app/shared/widgets/base_card.dart';
 
 class MockTrendCard extends StatelessWidget {
-  const MockTrendCard({
-    super.key,
-    required this.title,
-    required this.subtitle,
-  });
+  const MockTrendCard({super.key, required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -81,8 +77,14 @@ class _TrendPainter extends CustomPainter {
       final current = points[i];
       final control = Offset((previous.dx + current.dx) / 2, previous.dy);
       final control2 = Offset((previous.dx + current.dx) / 2, current.dy);
-      path.cubicTo(control.dx, control.dy, control2.dx, control2.dy, current.dx,
-          current.dy);
+      path.cubicTo(
+        control.dx,
+        control.dy,
+        control2.dx,
+        control2.dy,
+        current.dx,
+        current.dy,
+      );
     }
 
     final fillPath = Path.from(path)

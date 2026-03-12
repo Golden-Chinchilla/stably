@@ -12,18 +12,13 @@ final dioProvider = Provider<Dio>((ref) {
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 20),
       sendTimeout: const Duration(seconds: 15),
-      headers: const {
-        'Accept': 'application/json',
-      },
+      headers: const {'Accept': 'application/json'},
     ),
   );
 
   if (kDebugMode) {
     dio.interceptors.add(
-      PrettyDioLogger(
-        requestBody: false,
-        responseBody: false,
-      ),
+      PrettyDioLogger(requestBody: false, responseBody: false),
     );
   }
 
@@ -64,7 +59,8 @@ class ApiClient {
       return body;
     } on DioException catch (error) {
       final responseBody = error.response?.data;
-      if (responseBody is Map<String, dynamic> && responseBody['error'] is Map<String, dynamic>) {
+      if (responseBody is Map<String, dynamic> &&
+          responseBody['error'] is Map<String, dynamic>) {
         final apiError = responseBody['error'] as Map<String, dynamic>;
         throw ApiException(
           apiError['message'] as String? ?? error.message ?? 'Request failed',

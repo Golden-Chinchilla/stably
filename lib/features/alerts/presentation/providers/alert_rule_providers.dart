@@ -5,8 +5,8 @@ import 'package:stably_app/features/market/presentation/providers/market_provide
 
 final alertRulesControllerProvider =
     AsyncNotifierProvider<AlertRulesController, List<AlertRule>>(
-  AlertRulesController.new,
-);
+      AlertRulesController.new,
+    );
 
 class AlertRulesController extends AsyncNotifier<List<AlertRule>> {
   AlertRuleRepository get _repository => ref.read(alertRuleRepositoryProvider);
@@ -27,5 +27,47 @@ class AlertRulesController extends AsyncNotifier<List<AlertRule>> {
     state = const AsyncLoading();
     await _repository.clearRules();
     state = const AsyncData([]);
+  }
+
+  Future<void> addRule(AlertRule rule) async {
+    final previous = state.maybeWhen(
+      data: (rules) => rules,
+      orElse: () => <AlertRule>[],
+    );
+    state = const AsyncLoading();
+    try {
+      state = AsyncData(await _repository.addRule(rule));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(previous);
+    }
+  }
+
+  Future<void> updateRule(AlertRule rule) async {
+    final previous = state.maybeWhen(
+      data: (rules) => rules,
+      orElse: () => <AlertRule>[],
+    );
+    state = const AsyncLoading();
+    try {
+      state = AsyncData(await _repository.updateRule(rule));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(previous);
+    }
+  }
+
+  Future<void> deleteRule(String id) async {
+    final previous = state.maybeWhen(
+      data: (rules) => rules,
+      orElse: () => <AlertRule>[],
+    );
+    state = const AsyncLoading();
+    try {
+      state = AsyncData(await _repository.deleteRule(id));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(previous);
+    }
   }
 }

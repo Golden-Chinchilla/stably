@@ -20,7 +20,34 @@ class AlertRuleRepository {
 
   Future<void> saveRules(List<AlertRule> rules) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_alertRulesStorageKey, AlertRule.encodeList(rules));
+    await preferences.setString(
+      _alertRulesStorageKey,
+      AlertRule.encodeList(rules),
+    );
+  }
+
+  Future<List<AlertRule>> addRule(AlertRule rule) async {
+    final current = await loadRules();
+    final updated = [...current, rule];
+    await saveRules(updated);
+    return updated;
+  }
+
+  Future<List<AlertRule>> updateRule(AlertRule rule) async {
+    final current = await loadRules();
+    final updated = [
+      for (final item in current)
+        if (item.id == rule.id) rule else item,
+    ];
+    await saveRules(updated);
+    return updated;
+  }
+
+  Future<List<AlertRule>> deleteRule(String id) async {
+    final current = await loadRules();
+    final updated = current.where((item) => item.id != id).toList();
+    await saveRules(updated);
+    return updated;
   }
 
   Future<void> clearRules() async {
@@ -35,7 +62,8 @@ class AlertRuleRepository {
         id: 'yield-below-usdc',
         type: AlertRuleType.yieldBelow,
         title: 'USDC flexible yield falls below 4%',
-        description: 'Notify when baseline yields compress enough to justify a manual review.',
+        description:
+            'Notify when baseline yields compress enough to justify a manual review.',
         frequency: 'Enabled',
         enabled: true,
         symbol: 'USDC',
@@ -45,7 +73,8 @@ class AlertRuleRepository {
         id: 'promo-watch',
         type: AlertRuleType.newPromoWatch,
         title: 'New exchange promo appears',
-        description: 'Surface short-lived campaign changes quickly so capped buckets can be reviewed.',
+        description:
+            'Surface short-lived campaign changes quickly so capped buckets can be reviewed.',
         frequency: 'Instant',
         enabled: true,
         symbol: topPool?.symbol,
@@ -55,7 +84,8 @@ class AlertRuleRepository {
         id: 'portfolio-drift',
         type: AlertRuleType.portfolioDrift,
         title: 'Portfolio drifts from suggested split',
-        description: 'Remind when tracked positions diverge materially from the sample allocation.',
+        description:
+            'Remind when tracked positions diverge materially from the sample allocation.',
         frequency: 'Daily',
         enabled: true,
       ),

@@ -1,10 +1,6 @@
 import 'dart:convert';
 
-enum AlertRuleType {
-  yieldBelow,
-  newPromoWatch,
-  portfolioDrift,
-}
+enum AlertRuleType { yieldBelow, newPromoWatch, portfolioDrift }
 
 class AlertRule {
   const AlertRule({
@@ -29,17 +25,44 @@ class AlertRule {
   final String? chain;
   final double? threshold;
 
+  AlertRule copyWith({
+    String? id,
+    AlertRuleType? type,
+    String? title,
+    String? description,
+    String? frequency,
+    bool? enabled,
+    String? symbol,
+    String? chain,
+    double? threshold,
+    bool clearSymbol = false,
+    bool clearChain = false,
+    bool clearThreshold = false,
+  }) {
+    return AlertRule(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      frequency: frequency ?? this.frequency,
+      enabled: enabled ?? this.enabled,
+      symbol: clearSymbol ? null : (symbol ?? this.symbol),
+      chain: clearChain ? null : (chain ?? this.chain),
+      threshold: clearThreshold ? null : (threshold ?? this.threshold),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'title': title,
-        'description': description,
-        'frequency': frequency,
-        'enabled': enabled,
-        'symbol': symbol,
-        'chain': chain,
-        'threshold': threshold,
-      };
+    'id': id,
+    'type': type.name,
+    'title': title,
+    'description': description,
+    'frequency': frequency,
+    'enabled': enabled,
+    'symbol': symbol,
+    'chain': chain,
+    'threshold': threshold,
+  };
 
   factory AlertRule.fromJson(Map<String, dynamic> json) {
     return AlertRule(
@@ -65,7 +88,9 @@ class AlertRule {
   static List<AlertRule> decodeList(String raw) {
     final jsonList = jsonDecode(raw) as List<dynamic>;
     return jsonList
-        .map((item) => AlertRule.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map(
+          (item) => AlertRule.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 }

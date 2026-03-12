@@ -13,7 +13,9 @@ class MarketRepository {
 
   Future<HealthStatus> fetchHealth() async {
     final body = await _client.getJson('/api/health');
-    return HealthStatus.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+    return HealthStatus.fromJson(
+      Map<String, dynamic>.from(body['data'] as Map),
+    );
   }
 
   Future<List<Stablecoin>> fetchStablecoins({
@@ -33,13 +35,17 @@ class MarketRepository {
     );
 
     return (body['data'] as List? ?? const [])
-        .map((item) => Stablecoin.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map(
+          (item) => Stablecoin.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 
   Future<StablecoinDetail> fetchStablecoinDetail(String stablecoinId) async {
     final body = await _client.getJson('/api/stablecoins/$stablecoinId');
-    return StablecoinDetail.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+    return StablecoinDetail.fromJson(
+      Map<String, dynamic>.from(body['data'] as Map),
+    );
   }
 
   Future<List<StablecoinChain>> fetchStablecoinChains({
@@ -61,7 +67,10 @@ class MarketRepository {
     );
 
     return (body['data'] as List? ?? const [])
-        .map((item) => StablecoinChain.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map(
+          (item) =>
+              StablecoinChain.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 
@@ -84,7 +93,9 @@ class MarketRepository {
     );
 
     return (body['data'] as List? ?? const [])
-        .map((item) => YieldPool.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map(
+          (item) => YieldPool.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 }

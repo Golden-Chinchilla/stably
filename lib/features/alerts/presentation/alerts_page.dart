@@ -1,20 +1,30 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stably_app/features/alerts/data/models/alert_rule.dart';
 import 'package:stably_app/features/alerts/presentation/providers/alert_rule_providers.dart';
 import 'package:stably_app/features/market/data/models/yield_pool.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
+import 'package:stably_app/features/portfolio/data/models/portfolio_position.dart';
 import 'package:stably_app/features/portfolio/presentation/providers/portfolio_providers.dart';
 import 'package:stably_app/shared/utils/formatters.dart';
 import 'package:stably_app/shared/widgets/alert_rule_card.dart';
+import 'package:stably_app/shared/widgets/app_amount_field.dart';
+import 'package:stably_app/shared/widgets/app_bottom_sheet_picker_field.dart';
 import 'package:stably_app/shared/widgets/app_empty_state.dart';
+import 'package:stably_app/shared/widgets/app_feedback.dart';
+import 'package:stably_app/shared/widgets/app_filter_chip.dart';
 import 'package:stably_app/shared/widgets/app_page_scaffold.dart';
+import 'package:stably_app/shared/widgets/app_segmented_control.dart';
 import 'package:stably_app/shared/widgets/app_skeleton.dart';
+import 'package:stably_app/shared/widgets/app_switch_row.dart';
+import 'package:stably_app/shared/widgets/app_text_field.dart';
 import 'package:stably_app/shared/widgets/async_section_state.dart';
+import 'package:stably_app/shared/widgets/base_card.dart';
 import 'package:stably_app/shared/widgets/highlight_panel.dart';
 import 'package:stably_app/shared/widgets/insight_tile.dart';
-import 'package:stably_app/shared/widgets/placeholder_metric_card.dart';
 import 'package:stably_app/shared/widgets/pill_button.dart';
+import 'package:stably_app/shared/widgets/placeholder_metric_card.dart';
 import 'package:stably_app/shared/widgets/risk_notice_card.dart';
 import 'package:stably_app/shared/widgets/section_block.dart';
 import 'package:stably_app/shared/widgets/status_tag.dart';
@@ -30,6 +40,82 @@ class AlertsPage extends ConsumerWidget {
     ]);
   }
 
+  Future<void> _openRuleForm(
+    BuildContext context,
+    WidgetRef ref, {
+    AlertRule? initialRule,
+  }) async {
+    final pools = ref
+        .read(yieldPoolsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => const <YieldPool>[]);
+    final positions = ref
+        .read(portfolioControllerProvider)
+        .maybeWhen(
+          data: (items) => items,
+          orElse: () => const <PortfolioPosition>[],
+        );
+
+    final result = await showModalBottomSheet<AlertRule>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AlertRuleFormSheet(
+        initialRule: initialRule,
+        livePools: pools,
+        positions: positions,
+      ),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    final controller = ref.read(alertRulesControllerProvider.notifier);
+    if (initialRule == null) {
+      await controller.addRule(result);
+      if (context.mounted) {
+        AppFeedback.showSuccess(context, 'Alert rule saved.');
+      }
+    } else {
+      await controller.updateRule(result);
+      if (context.mounted) {
+        AppFeedback.showSuccess(context, 'Alert rule updated.');
+      }
+    }
+  }
+
+  Future<void> _deleteRule(
+    BuildContext context,
+    WidgetRef ref,
+    AlertRule rule,
+  ) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Delete alert rule'),
+        content: Text('Remove "${rule.title}" from local alert rules?'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(alertRulesControllerProvider.notifier).deleteRule(rule.id);
+      if (context.mounted) {
+        AppFeedback.showInfo(context, 'Alert rule deleted.');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rulesAsync = ref.watch(alertRulesControllerProvider);
@@ -38,32 +124,62 @@ class AlertsPage extends ConsumerWidget {
 
     return AppPageScaffold(
       title: 'Alerts',
-      subtitle: 'Local rule tracking with live pool and portfolio context.',
+      subtitle:
+          'Manage local alert rules with tracked yield pool and portfolio context.',
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
-          title: 'Premium alerting',
-          subtitle: 'This hero now reflects local rules and live pool coverage.',
+          title: 'Alerts Overview',
+          subtitle: 'Summary of local rules and current live context.',
           child: rulesAsync.when(
             data: (rules) {
-              final premiumLikeCount =
-                  rules.where((rule) => rule.type != AlertRuleType.yieldBelow).length;
+              final enabledRules = rules.where((rule) => rule.enabled).length;
 
               return HighlightPanel(
-                eyebrow: 'Signals',
+                eyebrow: 'Alerts',
                 title: rules.isEmpty
-                    ? 'No local alert rules yet.'
-                    : 'Keep rates, promos, and portfolio drift under one quiet watchlist.',
+                    ? 'Add your first alert rule.'
+                    : 'Track rates, promos, and portfolio drift from one ruleset.',
                 description: rules.isEmpty
-                    ? 'Seed the page to create a first local set of alert rules.'
-                    : 'Rules are stored locally, while current pool data provides context for what those rules are watching.',
-                value: '${rules.length} active',
-                secondaryValue: '$premiumLikeCount premium-like',
-                tag: rules.isEmpty ? 'Empty' : 'Live',
+                    ? 'Create rules manually or seed a first set from the live yield pool board.'
+                    : 'Rules are stored locally while tracked yield pools and positions provide current monitoring context.',
+                value: '$enabledRules enabled',
+                secondaryValue: '${rules.length} total',
+                tag: rules.isEmpty ? 'Empty' : 'Active',
                 tone: StatusTagTone.warning,
+                footer: Row(
+                  children: [
+                    Expanded(
+                      child: PillButton(
+                        label: 'Add rule',
+                        icon: CupertinoIcons.add,
+                        onPressed: () => _openRuleForm(context, ref),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: PillButton(
+                        label: rules.isEmpty ? 'Load demo' : 'Reload demo',
+                        icon: CupertinoIcons.arrow_down_doc,
+                        isPrimary: false,
+                        onPressed: () async {
+                          await ref
+                              .read(alertRulesControllerProvider.notifier)
+                              .seedDemoRules();
+                          if (context.mounted) {
+                            AppFeedback.showInfo(
+                              context,
+                              'Demo alert rules loaded.',
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
-            loading: () => const AppHighlightPanelSkeleton(),
+            loading: () => const AppHighlightPanelSkeleton(showFooter: true),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
               onRetry: () => _refresh(ref),
@@ -71,22 +187,32 @@ class AlertsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Alert status',
-          subtitle: 'This block combines local rules, live pools, and tracked positions.',
+          title: 'Alerts Snapshot',
+          subtitle:
+              'Local rules combined with tracked positions and yield pools.',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               PillButton(
-                label: 'Load demo',
-                icon: CupertinoIcons.arrow_down_doc,
-                onPressed: () => ref.read(alertRulesControllerProvider.notifier).seedDemoRules(),
+                label: 'Add',
+                icon: CupertinoIcons.add,
+                compact: true,
+                onPressed: () => _openRuleForm(context, ref),
               ),
               const SizedBox(width: 8),
               PillButton(
                 label: 'Clear',
                 icon: CupertinoIcons.trash,
+                compact: true,
                 isPrimary: false,
-                onPressed: () => ref.read(alertRulesControllerProvider.notifier).clearRules(),
+                onPressed: () async {
+                  await ref
+                      .read(alertRulesControllerProvider.notifier)
+                      .clearRules();
+                  if (context.mounted) {
+                    AppFeedback.showInfo(context, 'Alert rules cleared.');
+                  }
+                },
               ),
             ],
           ),
@@ -98,10 +224,10 @@ class AlertsPage extends ConsumerWidget {
                     Expanded(
                       child: InsightTile(
                         icon: CupertinoIcons.bell,
-                        label: 'Threshold rules',
-                        value:
-                            '${rules.where((rule) => rule.type == AlertRuleType.yieldBelow).length}',
-                        caption: 'Local yield-floor monitoring rules.',
+                        label: 'Alert rules',
+                        value: '${rules.length}',
+                        caption:
+                            'Local monitoring rules currently stored on device.',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -111,7 +237,8 @@ class AlertsPage extends ConsumerWidget {
                           icon: CupertinoIcons.square_stack_3d_up_fill,
                           label: 'Tracked positions',
                           value: '${positions.length}',
-                          caption: 'Portfolio entries that can trigger drift reminders.',
+                          caption:
+                              'Portfolio entries that can trigger drift reminders.',
                         ),
                         loading: () => const AppInsightTileSkeleton(),
                         error: (_, _) => const InsightTile(
@@ -127,11 +254,11 @@ class AlertsPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 poolsAsync.when(
                   data: (pools) => PlaceholderMetricCard(
-                    label: 'Monitored pool board',
-                    value: '${pools.length} lanes',
+                    label: 'Tracked yield pools',
+                    value: '${pools.length} pools',
                     caption: pools.isEmpty
-                        ? 'No live pools loaded yet.'
-                        : 'Current top monitored pool: ${pools.first.project} · ${formatPercent(pools.first.apy)}',
+                        ? 'No tracked yield pools loaded yet.'
+                        : 'Current lead pool: ${pools.first.project} · ${formatPercent(pools.first.apy)}',
                     tag: 'Live',
                     tone: StatusTagTone.warning,
                   ),
@@ -163,17 +290,19 @@ class AlertsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Configured rules',
-          subtitle: 'Rules are now stored locally and can be seeded from the live pool board.',
+          title: 'Alert Rules',
+          subtitle:
+              'Create local rules for yield thresholds, promos, and portfolio drift.',
           child: rulesAsync.when(
             data: (rules) {
               if (rules.isEmpty) {
                 return AppEmptyState(
                   title: 'No alert rules yet',
-                  description: 'Load demo rules to seed local alert tracking for this page.',
+                  description:
+                      'Add a rule manually or load a demo set from the current yield pool board.',
                   icon: CupertinoIcons.bell,
-                  actionLabel: 'Load demo',
-                  onAction: () => ref.read(alertRulesControllerProvider.notifier).seedDemoRules(),
+                  actionLabel: 'Add rule',
+                  onAction: () => _openRuleForm(context, ref),
                 );
               }
 
@@ -190,6 +319,40 @@ class AlertsPage extends ConsumerWidget {
                       description: _ruleDescription(rules[index], pools),
                       frequency: rules[index].frequency,
                       tone: _ruleTone(rules[index]),
+                      statusLabel: rules[index].enabled ? 'Enabled' : 'Paused',
+                      secondaryTags: [
+                        if (rules[index].symbol != null) rules[index].symbol!,
+                        if (rules[index].chain != null) rules[index].chain!,
+                        if (rules[index].threshold != null)
+                          '≤ ${rules[index].threshold!.toStringAsFixed(2)}%',
+                      ],
+                      footer: Row(
+                        children: [
+                          Expanded(
+                            child: PillButton(
+                              label: 'Edit',
+                              icon: CupertinoIcons.pencil,
+                              compact: true,
+                              isPrimary: false,
+                              onPressed: () => _openRuleForm(
+                                context,
+                                ref,
+                                initialRule: rules[index],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: PillButton(
+                              label: 'Delete',
+                              icon: CupertinoIcons.delete,
+                              compact: true,
+                              onPressed: () =>
+                                  _deleteRule(context, ref, rules[index]),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     if (index != rules.length - 1) const SizedBox(height: 16),
                   ],
@@ -204,19 +367,20 @@ class AlertsPage extends ConsumerWidget {
           ),
         ),
         const SectionBlock(
-          title: 'Messaging principles',
-          subtitle: 'The notification layer stays informative, selective, and compliant.',
+          title: 'Alert Notes',
+          subtitle:
+              'The notification layer stays informative, selective, and compliant.',
           child: Column(
             children: [
               RiskNoticeCard(
-                title: 'Alerts suggest reviews, not actions',
+                title: 'Alerts suggest review, not action',
                 description:
                     'The product surfaces information but does not execute transfers or recommendations.',
                 tone: StatusTagTone.info,
               ),
               SizedBox(height: 12),
               RiskNoticeCard(
-                title: 'Short-lived promos may expire before the user acts',
+                title: 'Short-lived promos may expire before action',
                 description:
                     'Final availability should always be verified on the destination platform.',
                 tone: StatusTagTone.warning,
@@ -229,12 +393,319 @@ class AlertsPage extends ConsumerWidget {
   }
 }
 
+class _AlertRuleFormSheet extends StatefulWidget {
+  const _AlertRuleFormSheet({
+    this.initialRule,
+    required this.livePools,
+    required this.positions,
+  });
+
+  final AlertRule? initialRule;
+  final List<YieldPool> livePools;
+  final List<PortfolioPosition> positions;
+
+  @override
+  State<_AlertRuleFormSheet> createState() => _AlertRuleFormSheetState();
+}
+
+class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late AlertRuleType _type;
+  late String _frequency;
+  late bool _enabled;
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _symbolController;
+  late final TextEditingController _chainController;
+  late final TextEditingController _thresholdController;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialRule;
+    _type = initial?.type ?? AlertRuleType.yieldBelow;
+    _frequency = initial?.frequency ?? 'Instant';
+    _enabled = initial?.enabled ?? true;
+    _titleController = TextEditingController(text: initial?.title ?? '');
+    _descriptionController = TextEditingController(
+      text: initial?.description ?? '',
+    );
+    _symbolController = TextEditingController(text: initial?.symbol ?? '');
+    _chainController = TextEditingController(text: initial?.chain ?? '');
+    _thresholdController = TextEditingController(
+      text: initial?.threshold == null
+          ? ''
+          : initial!.threshold!.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _symbolController.dispose();
+    _chainController.dispose();
+    _thresholdController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final suggestions = widget.livePools.take(6).toList();
+    final portfolioSymbols = widget.positions
+        .map((position) => position.symbol)
+        .toSet()
+        .take(6);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+      ),
+      child: BaseCard(
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.initialRule == null
+                      ? 'Add alert rule'
+                      : 'Edit alert rule',
+                  style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Store a local rule for yield thresholds, promo watches, or portfolio drift.',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                Text('Rule type', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 10),
+                AppSegmentedControl<AlertRuleType>(
+                  value: _type,
+                  options: [
+                    for (final type in AlertRuleType.values)
+                      (value: type, label: _typeLabel(type)),
+                  ],
+                  onChanged: (value) => setState(() => _type = value),
+                ),
+                const SizedBox(height: 16),
+                if (suggestions.isNotEmpty) ...[
+                  Text(
+                    'Live pool suggestions',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final pool in suggestions)
+                        AppFilterChip(
+                          label: '${pool.symbol} · ${pool.project}',
+                          onTap: () {
+                            _symbolController.text = pool.symbol;
+                            _chainController.text = pool.chain;
+                            if (_titleController.text.trim().isEmpty) {
+                              _titleController.text =
+                                  '${pool.symbol} rule on ${pool.project}';
+                            }
+                            setState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (portfolioSymbols.isNotEmpty) ...[
+                  Text(
+                    'Tracked position symbols',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final symbol in portfolioSymbols)
+                        AppFilterChip(
+                          label: symbol,
+                          onTap: () {
+                            _symbolController.text = symbol;
+                            setState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                AppTextField(
+                  controller: _titleController,
+                  label: 'Title',
+                  placeholder: 'USDC yield falls below 4%',
+                  validator: _requiredField,
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
+                  controller: _descriptionController,
+                  label: 'Description',
+                  placeholder: 'Notify when the current threshold is breached.',
+                  validator: _requiredField,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        controller: _symbolController,
+                        label: 'Stablecoin',
+                        placeholder: 'USDC',
+                        validator: _requiresSymbol(_type)
+                            ? _requiredField
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppTextField(
+                        controller: _chainController,
+                        label: 'Chain',
+                        placeholder: 'Ethereum',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppAmountField(
+                        controller: _thresholdController,
+                        label: 'Threshold (%)',
+                        placeholder: '4.00',
+                        validator: _requiresThreshold(_type)
+                            ? _positiveNumberField
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppBottomSheetPickerField<String>(
+                        label: 'Frequency',
+                        value: _frequency,
+                        displayText: _frequency,
+                        options: const [
+                          (value: 'Instant', label: 'Instant'),
+                          (value: 'Daily', label: 'Daily'),
+                          (value: 'Weekly', label: 'Weekly'),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _frequency = value),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                AppSwitchRow(
+                  label: 'Enabled',
+                  value: _enabled,
+                  onChanged: (value) => setState(() => _enabled = value),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: PillButton(
+                        label: 'Cancel',
+                        isPrimary: false,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: PillButton(
+                        label: widget.initialRule == null ? 'Save' : 'Update',
+                        icon: CupertinoIcons.check_mark,
+                        onPressed: _submit,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final rule = AlertRule(
+      id: widget.initialRule?.id ?? '${DateTime.now().microsecondsSinceEpoch}',
+      type: _type,
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      frequency: _frequency,
+      enabled: _enabled,
+      symbol: _symbolController.text.trim().isEmpty
+          ? null
+          : _symbolController.text.trim().toUpperCase(),
+      chain: _chainController.text.trim().isEmpty
+          ? null
+          : _chainController.text.trim(),
+      threshold: _thresholdController.text.trim().isEmpty
+          ? null
+          : double.parse(_thresholdController.text.trim()),
+    );
+
+    Navigator.of(context).pop(rule);
+  }
+}
+
+String _typeLabel(AlertRuleType type) {
+  return switch (type) {
+    AlertRuleType.yieldBelow => 'Yield below',
+    AlertRuleType.newPromoWatch => 'Promo watch',
+    AlertRuleType.portfolioDrift => 'Portfolio drift',
+  };
+}
+
+bool _requiresSymbol(AlertRuleType type) {
+  return switch (type) {
+    AlertRuleType.yieldBelow => true,
+    AlertRuleType.newPromoWatch => true,
+    AlertRuleType.portfolioDrift => false,
+  };
+}
+
+bool _requiresThreshold(AlertRuleType type) {
+  return switch (type) {
+    AlertRuleType.yieldBelow => true,
+    AlertRuleType.newPromoWatch => false,
+    AlertRuleType.portfolioDrift => false,
+  };
+}
+
 String _ruleDescription(AlertRule rule, List<YieldPool> pools) {
   switch (rule.type) {
     case AlertRuleType.yieldBelow:
       return '${rule.description} Current threshold: ${rule.threshold?.toStringAsFixed(2) ?? '—'}%.';
     case AlertRuleType.newPromoWatch:
-      final matched = pools.where((pool) => pool.symbol == rule.symbol).take(1).toList();
+      final matched = pools
+          .where((pool) => pool.symbol == rule.symbol)
+          .take(1)
+          .toList();
       if (matched.isEmpty) {
         return rule.description;
       }
@@ -250,4 +721,22 @@ StatusTagTone _ruleTone(AlertRule rule) {
     AlertRuleType.newPromoWatch => StatusTagTone.success,
     AlertRuleType.portfolioDrift => StatusTagTone.warning,
   };
+}
+
+String? _requiredField(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Required';
+  }
+  return null;
+}
+
+String? _positiveNumberField(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Required';
+  }
+  final parsed = double.tryParse(value.trim());
+  if (parsed == null || parsed <= 0) {
+    return 'Enter a value greater than 0';
+  }
+  return null;
 }

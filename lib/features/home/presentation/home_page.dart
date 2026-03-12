@@ -8,7 +8,6 @@ import 'package:stably_app/features/market/data/models/yield_pool.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
 import 'package:stably_app/shared/utils/formatters.dart';
 import 'package:stably_app/shared/widgets/app_empty_state.dart';
-import 'package:stably_app/shared/widgets/app_interactive_card.dart';
 import 'package:stably_app/shared/widgets/app_page_scaffold.dart';
 import 'package:stably_app/shared/widgets/app_skeleton.dart';
 import 'package:stably_app/shared/widgets/async_section_state.dart';
@@ -49,7 +48,9 @@ class HomePage extends ConsumerWidget {
           subtitle: 'Top-line stablecoin coverage from the deployed backend.',
           child: stablecoinsAsync.when(
             data: (stablecoins) {
-              final featured = stablecoins.isNotEmpty ? stablecoins.first : null;
+              final featured = stablecoins.isNotEmpty
+                  ? stablecoins.first
+                  : null;
 
               return HighlightPanel(
                 eyebrow: 'Stablecoins',
@@ -59,21 +60,27 @@ class HomePage extends ConsumerWidget {
                 description: featured == null
                     ? 'Backend connectivity is working, but no stablecoin rows have synced yet.'
                     : '${featured.name} is currently the largest tracked stablecoin by circulating USD across ${featured.chains.length} chains.',
-                value: featured == null ? '—' : formatCurrency(featured.circulatingPeggedUsd),
-                secondaryValue: featured == null ? 'No data' : '${featured.chains.length} chains',
+                value: featured == null
+                    ? '—'
+                    : formatCurrency(featured.circulatingPeggedUsd),
+                secondaryValue: featured == null
+                    ? 'No data'
+                    : '${featured.chains.length} chains',
                 tag: 'Live',
                 footer: Row(
                   children: [
                     Expanded(
                       child: PillButton(
-                        label: featured == null ? 'Open discovery' : 'Open ${featured.symbol}',
+                        label: featured == null
+                            ? 'Open discovery'
+                            : 'Open ${featured.symbol}',
                         icon: CupertinoIcons.arrow_up_right,
                         onPressed: featured == null
                             ? null
                             : () => context.pushNamed(
-                                  AppRoute.stablecoinDetail.name,
-                                  pathParameters: {'id': featured.id},
-                                ),
+                                AppRoute.stablecoinDetail.name,
+                                pathParameters: {'id': featured.id},
+                              ),
                       ),
                     ),
                   ],
@@ -89,7 +96,8 @@ class HomePage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Coverage Snapshot',
-          subtitle: 'Sync status, stablecoin breadth, and top yield pool coverage.',
+          subtitle:
+              'Sync status, stablecoin breadth, and top yield pool coverage.',
           child: stablecoinsAsync.when(
             data: (stablecoins) => Column(
               children: [
@@ -101,7 +109,8 @@ class HomePage extends ConsumerWidget {
                         label: 'Fiat-backed',
                         value:
                             '${stablecoins.where((item) => item.pegMechanism == 'fiat-backed').length}',
-                        caption: 'Tracked stablecoins with a fiat-backed mechanism.',
+                        caption:
+                            'Tracked stablecoins with a fiat-backed mechanism.',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -134,10 +143,12 @@ class HomePage extends ConsumerWidget {
                         value: formatCurrency(
                           stablecoins.fold<double>(
                             0,
-                            (sum, item) => sum + (item.circulatingPeggedUsd ?? 0),
+                            (sum, item) =>
+                                sum + (item.circulatingPeggedUsd ?? 0),
                           ),
                         ),
-                        caption: 'Combined circulating USD across loaded stablecoins.',
+                        caption:
+                            'Combined circulating USD across loaded stablecoins.',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -146,8 +157,12 @@ class HomePage extends ConsumerWidget {
                         data: (health) => InsightTile(
                           icon: CupertinoIcons.clock,
                           label: 'Last sync',
-                          value: health.stablecoinsSyncedAt == null ? '—' : 'Ready',
-                          caption: health.stablecoinsSyncedAt ?? 'No sync recorded yet.',
+                          value: health.stablecoinsSyncedAt == null
+                              ? '—'
+                              : 'Ready',
+                          caption:
+                              health.stablecoinsSyncedAt ??
+                              'No sync recorded yet.',
                         ),
                         loading: () => const AppInsightTileSkeleton(),
                         error: (_, _) => const InsightTile(
@@ -163,7 +178,8 @@ class HomePage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const MockTrendCard(
                   title: 'Projected growth view',
-                  subtitle: 'Static visual retained for now; this can later use historical series.',
+                  subtitle:
+                      'Static visual retained for now; this can later use historical series.',
                 ),
               ],
             ),
@@ -198,7 +214,13 @@ class HomePage extends ConsumerWidget {
           title: 'Top Yield Pools',
           subtitle: 'Current yield pool leaders from the tracked market set.',
           child: poolsAsync.when(
-            data: (pools) => _PoolList(pools: pools.take(2).toList()),
+            data: (pools) => _PoolList(
+              pools: pools.take(2).toList(),
+              stablecoins: stablecoinsAsync.maybeWhen(
+                data: (items) => items,
+                orElse: () => const <Stablecoin>[],
+              ),
+            ),
             loading: () => const AppListSkeleton(items: 2),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
@@ -208,9 +230,11 @@ class HomePage extends ConsumerWidget {
         ),
         SectionBlock(
           title: 'Top Stablecoins',
-          subtitle: 'Open stablecoin detail with chain coverage and related pools.',
+          subtitle:
+              'Open stablecoin detail with chain coverage and related pools.',
           child: stablecoinsAsync.when(
-            data: (stablecoins) => _StablecoinList(stablecoins: stablecoins.take(3).toList()),
+            data: (stablecoins) =>
+                _StablecoinList(stablecoins: stablecoins.take(3).toList()),
             loading: () => const AppListSkeleton(items: 3),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
@@ -220,7 +244,8 @@ class HomePage extends ConsumerWidget {
         ),
         const SectionBlock(
           title: 'Risk Notes',
-          subtitle: 'Compliance and clarity remain visible in the product shell.',
+          subtitle:
+              'Compliance and clarity remain visible in the product shell.',
           child: Column(
             children: [
               RiskNoticeCard(
@@ -245,16 +270,18 @@ class HomePage extends ConsumerWidget {
 }
 
 class _PoolList extends StatelessWidget {
-  const _PoolList({required this.pools});
+  const _PoolList({required this.pools, required this.stablecoins});
 
   final List<YieldPool> pools;
+  final List<Stablecoin> stablecoins;
 
   @override
   Widget build(BuildContext context) {
     if (pools.isEmpty) {
       return const AppEmptyState(
         title: 'No yield pools yet',
-        description: 'Run a backend sync, then refresh to load the current pool board.',
+        description:
+            'Run a backend sync, then refresh to load the current pool board.',
         icon: CupertinoIcons.chart_bar_alt_fill,
       );
     }
@@ -262,20 +289,40 @@ class _PoolList extends StatelessWidget {
     return Column(
       children: [
         for (var index = 0; index < pools.length; index++) ...[
-          OpportunityCard(
-            icon: index == 0 ? CupertinoIcons.sparkles : CupertinoIcons.shield,
-            platform: pools[index].project,
-            asset: '${pools[index].symbol} · ${pools[index].chain}',
-            apy: formatPercent(pools[index].apy),
-            summary: pools[index].poolMeta?.isNotEmpty == true
-                ? pools[index].poolMeta!
-                : 'Tracked yield pool synced from DefiLlama.',
-            tags: [
-              pools[index].chain,
-              pools[index].symbol,
-              if ((pools[index].tvlUsd ?? 0) > 0) formatCurrency(pools[index].tvlUsd),
-            ],
-            tone: (pools[index].apy ?? 0) >= 10 ? StatusTagTone.success : StatusTagTone.info,
+          Builder(
+            builder: (context) {
+              final stablecoin = _matchStablecoin(pools[index], stablecoins);
+
+              return OpportunityCard(
+                icon: index == 0
+                    ? CupertinoIcons.sparkles
+                    : CupertinoIcons.shield,
+                platform: pools[index].project,
+                asset: '${pools[index].symbol} · ${pools[index].chain}',
+                apy: formatPercent(pools[index].apy),
+                summary: pools[index].poolMeta?.isNotEmpty == true
+                    ? pools[index].poolMeta!
+                    : 'Tracked yield pool synced from DefiLlama.',
+                tags: [
+                  pools[index].chain,
+                  pools[index].symbol,
+                  if ((pools[index].tvlUsd ?? 0) > 0)
+                    formatCurrency(pools[index].tvlUsd),
+                ],
+                tone: (pools[index].apy ?? 0) >= 10
+                    ? StatusTagTone.success
+                    : StatusTagTone.info,
+                onTap: stablecoin == null
+                    ? null
+                    : () => context.goNamed(
+                        AppRoute.allocate.name,
+                        queryParameters: {
+                          'symbol': stablecoin.symbol,
+                          'chain': pools[index].chain,
+                        },
+                      ),
+              );
+            },
           ),
           if (index != pools.length - 1) const SizedBox(height: 16),
         ],
@@ -294,7 +341,8 @@ class _StablecoinList extends StatelessWidget {
     if (stablecoins.isEmpty) {
       return const AppEmptyState(
         title: 'No stablecoins yet',
-        description: 'Run a backend sync, then refresh to populate the stablecoin board.',
+        description:
+            'Run a backend sync, then refresh to populate the stablecoin board.',
         icon: CupertinoIcons.money_dollar_circle,
       );
     }
@@ -317,45 +365,81 @@ class _StablecoinSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppInteractiveCard(
-      onTap: () => context.pushNamed(
-        AppRoute.stablecoinDetail.name,
-        pathParameters: {'id': stablecoin.id},
-      ),
-      child: BaseCard(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return BaseCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stablecoin.symbol,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      stablecoin.name,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    stablecoin.symbol,
+                    formatCurrency(stablecoin.circulatingPeggedUsd),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    stablecoin.name,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  const SizedBox(height: 6),
+                  StatusTag(label: '${stablecoin.chains.length} chains'),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatCurrency(stablecoin.circulatingPeggedUsd),
-                  style: Theme.of(context).textTheme.titleMedium,
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: PillButton(
+                  label: 'Detail',
+                  icon: CupertinoIcons.doc_text_search,
+                  compact: true,
+                  isPrimary: false,
+                  onPressed: () => context.pushNamed(
+                    AppRoute.stablecoinDetail.name,
+                    pathParameters: {'id': stablecoin.id},
+                  ),
                 ),
-                const SizedBox(height: 6),
-                StatusTag(label: '${stablecoin.chains.length} chains'),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: PillButton(
+                  label: 'Allocate',
+                  icon: CupertinoIcons.chart_pie,
+                  compact: true,
+                  onPressed: () => context.goNamed(
+                    AppRoute.allocate.name,
+                    queryParameters: {'symbol': stablecoin.symbol},
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
+
+Stablecoin? _matchStablecoin(YieldPool pool, List<Stablecoin> stablecoins) {
+  for (final stablecoin in stablecoins) {
+    if (stablecoin.symbol.toUpperCase() == pool.symbol.toUpperCase()) {
+      return stablecoin;
+    }
+  }
+  return null;
 }

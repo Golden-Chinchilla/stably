@@ -4,11 +4,9 @@ import 'package:stably_app/shared/network/api_exception.dart';
 import 'package:stably_app/shared/widgets/base_card.dart';
 
 class AsyncSectionState extends StatelessWidget {
-  const AsyncSectionState.loading({
-    super.key,
-    this.message = 'Loading...',
-  })  : isError = false,
-        onRetry = null;
+  const AsyncSectionState.loading({super.key, this.message = 'Loading...'})
+    : isError = false,
+      onRetry = null;
 
   const AsyncSectionState.error({
     super.key,

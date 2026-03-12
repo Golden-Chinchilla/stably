@@ -19,17 +19,23 @@ class AppSkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: tokens.border.withAlpha(180),
-        borderRadius: BorderRadius.circular(radius),
-      ),
-    )
-        .animate(onPlay: (controller) => controller.repeat(reverse: true))
-        .fade(begin: 0.35, end: 0.75, duration: 900.ms);
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: tokens.border.withValues(alpha: isDark ? 0.2 : 0.5),
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        )
+        .animate(onPlay: (controller) => controller.repeat())
+        .shimmer(
+          duration: 1500.ms,
+          color: tokens.surface.withValues(alpha: isDark ? 0.1 : 0.4),
+          angle: 0.5,
+          size: 2,
+        );
   }
 }
 
@@ -47,7 +53,9 @@ class AppHighlightPanelSkeleton extends StatelessWidget {
         children: [
           const Row(
             children: [
-              Expanded(child: AppSkeletonBox(height: 12, width: 96, radius: 999)),
+              Expanded(
+                child: AppSkeletonBox(height: 12, width: 96, radius: 999),
+              ),
               SizedBox(width: 12),
               AppSkeletonBox(height: 28, width: 72, radius: 999),
             ],
@@ -68,7 +76,11 @@ class AppHighlightPanelSkeleton extends StatelessWidget {
           ),
           if (showFooter) ...[
             const SizedBox(height: 20),
-            const AppSkeletonBox(height: 42, width: double.infinity, radius: 999),
+            const AppSkeletonBox(
+              height: 42,
+              width: double.infinity,
+              radius: 999,
+            ),
           ],
         ],
       ),
@@ -101,10 +113,7 @@ class AppInsightTileSkeleton extends StatelessWidget {
 }
 
 class AppInfoListSkeleton extends StatelessWidget {
-  const AppInfoListSkeleton({
-    super.key,
-    this.rows = 3,
-  });
+  const AppInfoListSkeleton({super.key, this.rows = 3});
 
   final int rows;
 
@@ -204,7 +213,9 @@ class AppMetricCardSkeleton extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: AppSkeletonBox(height: 12, width: 110, radius: 999)),
+              Expanded(
+                child: AppSkeletonBox(height: 12, width: 110, radius: 999),
+              ),
               SizedBox(width: 12),
               AppSkeletonBox(height: 28, width: 60, radius: 999),
             ],
@@ -222,10 +233,7 @@ class AppMetricCardSkeleton extends StatelessWidget {
 }
 
 class AppListSkeleton extends StatelessWidget {
-  const AppListSkeleton({
-    super.key,
-    this.items = 3,
-  });
+  const AppListSkeleton({super.key, this.items = 3});
 
   final int items;
 

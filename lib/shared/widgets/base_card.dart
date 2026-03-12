@@ -19,14 +19,29 @@ class BaseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? tokens.surface,
         border: Border.all(
-          color: borderColor ?? tokens.border,
-          width: AppSpacing.borderWidth,
+          color:
+              borderColor ??
+              tokens.border.withValues(alpha: isDark ? 0.3 : 0.5),
+          width: isDark ? 1 : 0.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: tokens.textPrimary.withValues(alpha: isDark ? 0.05 : 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: tokens.textPrimary.withValues(alpha: isDark ? 0.02 : 0.01),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
         borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
       ),
       child: Padding(padding: padding, child: child),

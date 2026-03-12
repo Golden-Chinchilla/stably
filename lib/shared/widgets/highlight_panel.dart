@@ -66,10 +66,7 @@ class HighlightPanel extends StatelessWidget {
               _MetricCluster(label: 'Annualized', value: secondaryValue),
             ],
           ),
-          if (footer != null) ...[
-            const SizedBox(height: 20),
-            footer!,
-          ],
+          if (footer != null) ...[const SizedBox(height: 20), footer!],
         ],
       ),
     );
@@ -77,10 +74,7 @@ class HighlightPanel extends StatelessWidget {
 }
 
 class _MetricCluster extends StatelessWidget {
-  const _MetricCluster({
-    required this.label,
-    required this.value,
-  });
+  const _MetricCluster({required this.label, required this.value});
 
   final String label;
   final String value;

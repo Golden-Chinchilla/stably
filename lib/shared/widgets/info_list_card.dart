@@ -4,11 +4,7 @@ import 'package:stably_app/shared/widgets/base_card.dart';
 import 'package:stably_app/shared/widgets/metric_text.dart';
 
 class InfoListCard extends StatelessWidget {
-  const InfoListCard({
-    super.key,
-    required this.title,
-    required this.rows,
-  });
+  const InfoListCard({super.key, required this.title, required this.rows});
 
   final String title;
   final List<({String label, String value, String hint})> rows;
@@ -31,7 +27,10 @@ class InfoListCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(rows[index].label, style: theme.textTheme.labelLarge),
+                      Text(
+                        rows[index].label,
+                        style: theme.textTheme.labelLarge,
+                      ),
                       const SizedBox(height: 4),
                       Text(rows[index].hint, style: theme.textTheme.bodySmall),
                     ],

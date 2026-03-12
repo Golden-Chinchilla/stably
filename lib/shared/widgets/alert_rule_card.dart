@@ -10,12 +10,18 @@ class AlertRuleCard extends StatelessWidget {
     required this.description,
     required this.frequency,
     required this.tone,
+    this.statusLabel,
+    this.secondaryTags = const [],
+    this.footer,
   });
 
   final String title;
   final String description;
   final String frequency;
   final StatusTagTone tone;
+  final String? statusLabel;
+  final List<String> secondaryTags;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +37,24 @@ class AlertRuleCard extends StatelessWidget {
               StatusTag(label: frequency, tone: tone),
             ],
           ),
+          if (statusLabel != null || secondaryTags.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.item),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (statusLabel != null)
+                  StatusTag(label: statusLabel!, tone: tone),
+                for (final tag in secondaryTags) StatusTag(label: tag),
+              ],
+            ),
+          ],
           const SizedBox(height: AppSpacing.item),
           Text(description, style: theme.textTheme.bodySmall),
+          if (footer != null) ...[
+            const SizedBox(height: AppSpacing.item),
+            footer!,
+          ],
         ],
       ),
     );

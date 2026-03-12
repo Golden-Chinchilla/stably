@@ -27,9 +27,15 @@ class StablecoinChain {
       stablecoinSymbol: json['stablecoinSymbol'] as String,
       chain: json['chain'] as String,
       current: Map<String, dynamic>.from(json['current'] as Map? ?? const {}),
-      circulatingPrevDay: Map<String, dynamic>.from(json['circulatingPrevDay'] as Map? ?? const {}),
-      circulatingPrevWeek: Map<String, dynamic>.from(json['circulatingPrevWeek'] as Map? ?? const {}),
-      circulatingPrevMonth: Map<String, dynamic>.from(json['circulatingPrevMonth'] as Map? ?? const {}),
+      circulatingPrevDay: Map<String, dynamic>.from(
+        json['circulatingPrevDay'] as Map? ?? const {},
+      ),
+      circulatingPrevWeek: Map<String, dynamic>.from(
+        json['circulatingPrevWeek'] as Map? ?? const {},
+      ),
+      circulatingPrevMonth: Map<String, dynamic>.from(
+        json['circulatingPrevMonth'] as Map? ?? const {},
+      ),
       updatedAt: json['updatedAt'] as String? ?? '',
     );
   }

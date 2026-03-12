@@ -53,7 +53,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.allocate.path,
                 name: AppRoute.allocate.name,
-                builder: (context, state) => const AllocationPage(),
+                builder: (context, state) => AllocationPage(
+                  initialSymbol: state.uri.queryParameters['symbol'],
+                  initialChain: state.uri.queryParameters['chain'],
+                ),
               ),
             ],
           ),

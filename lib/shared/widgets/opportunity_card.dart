@@ -39,11 +39,7 @@ class OpportunityCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            AppIconBadge(
-              icon: icon,
-              size: 42,
-              iconSize: 20,
-            ),
+            AppIconBadge(icon: icon, size: 42, iconSize: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -68,20 +64,13 @@ class OpportunityCard extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: [
-            for (final tag in tags) StatusTag(label: tag),
-          ],
+          children: [for (final tag in tags) StatusTag(label: tag)],
         ),
       ],
     );
 
-    final card = BaseCard(
-      child: content,
-    );
+    final card = BaseCard(child: content);
 
-    return AppInteractiveCard(
-      onTap: onTap,
-      child: card,
-    );
+    return AppInteractiveCard(onTap: onTap, child: card);
   }
 }
