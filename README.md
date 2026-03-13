@@ -1,17 +1,30 @@
-# stably_app
+# Stably
 
-A new Flutter project.
+Stably is a Flutter app plus Cloudflare Worker backend for comparing stablecoin yield opportunities across DeFi and CeFi.
 
-## Getting Started
+## Current Scope
+- DefiLlama data is limited to the current top 20 stablecoins by circulating USD.
+- DeFi yield pools are limited to pools related to that top 20 stablecoin set.
+- CeFi data currently covers `Binance` and `OKX` only.
+- The CeFi board displays six core fields:
+  - `platform`
+  - `asset`
+  - `apr`
+  - `product type`
+  - `term`
+  - `status`
 
-This project is a starting point for a Flutter application.
+## Stack
+- Flutter app in [`lib/`](/f:/vibecoding/stably/lib)
+- Cloudflare Worker in [`worker/`](/f:/vibecoding/stably/worker)
+- D1 for persistence
 
-A few resources to get you started if this is your first Flutter project:
+## Key Flows
+- Browse the top 20 stablecoins and related DeFi pools
+- Compare Binance and OKX CeFi savings rates
+- Run local allocation scenarios against the current tracked pool set
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Worker Notes
+- Worker runtime docs live in [`worker/README.md`](/f:/vibecoding/stably/worker/README.md)
+- Non-sensitive base URLs are configured in [`worker/wrangler.jsonc`](/f:/vibecoding/stably/worker/wrangler.jsonc)
+- Exchange keys and secrets should stay in Cloudflare Variables and Secrets

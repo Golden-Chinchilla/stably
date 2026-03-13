@@ -116,6 +116,22 @@ class AlertsPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _toggleRuleEnabled(
+    BuildContext context,
+    WidgetRef ref,
+    AlertRule rule,
+  ) async {
+    final nextRule = rule.copyWith(enabled: !rule.enabled);
+    await ref.read(alertRulesControllerProvider.notifier).updateRule(nextRule);
+    if (context.mounted) {
+      if (nextRule.enabled) {
+        AppFeedback.showSuccess(context, 'Alert rule enabled.');
+      } else {
+        AppFeedback.showInfo(context, 'Alert rule paused.');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rulesAsync = ref.watch(alertRulesControllerProvider);
@@ -147,25 +163,6 @@ class AlertsPage extends ConsumerWidget {
                         label: 'Add rule',
                         icon: CupertinoIcons.add,
                         onPressed: () => _openRuleForm(context, ref),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PillButton(
-                        label: rules.isEmpty ? 'Load demo' : 'Reload demo',
-                        icon: CupertinoIcons.arrow_down_doc,
-                        isPrimary: false,
-                        onPressed: () async {
-                          await ref
-                              .read(alertRulesControllerProvider.notifier)
-                              .seedDemoRules();
-                          if (context.mounted) {
-                            AppFeedback.showInfo(
-                              context,
-                              'Demo alert rules loaded.',
-                            );
-                          }
-                        },
                       ),
                     ),
                   ],
@@ -249,8 +246,8 @@ class AlertsPage extends ConsumerWidget {
                     value: '${pools.length} pools',
                     caption: pools.isEmpty
                         ? 'No tracked yield pools loaded yet.'
-                        : 'Current lead pool: ${pools.first.project} · ${formatPercent(pools.first.apy)}',
-                    tag: 'Live',
+                        : 'Current market lead: ${pools.first.project} · ${formatPercent(pools.first.apy)}',
+                    tag: 'Current',
                     tone: StatusTagTone.warning,
                   ),
                   loading: () => const AppMetricCardSkeleton(),
@@ -288,7 +285,7 @@ class AlertsPage extends ConsumerWidget {
                 return AppEmptyState(
                   title: 'No alert rules yet',
                   description:
-                      'Add a rule manually or load a demo set from the current yield pool board.',
+                      'Add a rule manually to monitor thresholds and portfolio drift on this device.',
                   icon: CupertinoIcons.bell,
                   actionLabel: 'Add rule',
                   onAction: () => _openRuleForm(context, ref),
@@ -300,23 +297,45 @@ class AlertsPage extends ConsumerWidget {
                 orElse: () => const <YieldPool>[],
               );
 
+              final sortedRules = [...rules]..sort(_compareRules);
+
               return Column(
                 children: [
-                  for (var index = 0; index < rules.length; index++) ...[
+                  for (var index = 0; index < sortedRules.length; index++) ...[
                     AlertRuleCard(
-                      title: rules[index].title,
-                      description: _ruleDescription(rules[index], pools),
-                      frequency: rules[index].frequency,
-                      tone: _ruleTone(rules[index]),
-                      statusLabel: rules[index].enabled ? 'Enabled' : 'Paused',
+                      title: sortedRules[index].title,
+                      description: _ruleDescription(sortedRules[index], pools),
+                      frequency: sortedRules[index].frequency,
+                      tone: _ruleTone(sortedRules[index]),
+                      statusLabel: sortedRules[index].enabled ? 'Enabled' : 'Paused',
                       secondaryTags: [
-                        if (rules[index].symbol != null) rules[index].symbol!,
-                        if (rules[index].chain != null) rules[index].chain!,
-                        if (rules[index].threshold != null)
-                          '≤ ${rules[index].threshold!.toStringAsFixed(2)}%',
+                        if (sortedRules[index].symbol != null)
+                          sortedRules[index].symbol!,
+                        if (sortedRules[index].chain != null)
+                          sortedRules[index].chain!,
+                        if (sortedRules[index].threshold != null)
+                          '≤ ${sortedRules[index].threshold!.toStringAsFixed(2)}%',
                       ],
                       footer: Row(
                         children: [
+                          Expanded(
+                            child: PillButton(
+                              label: sortedRules[index].enabled
+                                  ? 'Pause'
+                                  : 'Enable',
+                              icon: sortedRules[index].enabled
+                                  ? CupertinoIcons.pause
+                                  : CupertinoIcons.play_fill,
+                              compact: true,
+                              isPrimary: false,
+                              onPressed: () => _toggleRuleEnabled(
+                                context,
+                                ref,
+                                sortedRules[index],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: PillButton(
                               label: 'Edit',
@@ -326,7 +345,7 @@ class AlertsPage extends ConsumerWidget {
                               onPressed: () => _openRuleForm(
                                 context,
                                 ref,
-                                initialRule: rules[index],
+                                initialRule: sortedRules[index],
                               ),
                             ),
                           ),
@@ -337,13 +356,14 @@ class AlertsPage extends ConsumerWidget {
                               icon: CupertinoIcons.delete,
                               compact: true,
                               onPressed: () =>
-                                  _deleteRule(context, ref, rules[index]),
+                                  _deleteRule(context, ref, sortedRules[index]),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (index != rules.length - 1) const SizedBox(height: 16),
+                    if (index != sortedRules.length - 1)
+                      const SizedBox(height: 16),
                   ],
                 ],
               );
@@ -468,7 +488,7 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Store a local rule for yield thresholds, promo watches, or portfolio drift.',
+                  'Store a local rule for yield thresholds, promo watches, or portfolio drift. Current market matches can be used to prefill symbols and chains.',
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
@@ -485,7 +505,7 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                 const SizedBox(height: 16),
                 if (suggestions.isNotEmpty) ...[
                   Text(
-                    'Live pool suggestions',
+                    'Market matches',
                     style: theme.textTheme.titleSmall,
                   ),
                   const SizedBox(height: 10),
@@ -726,4 +746,20 @@ String? _positiveNumberField(String? value) {
     return 'Enter a value greater than 0';
   }
   return null;
+}
+
+int _compareRules(AlertRule left, AlertRule right) {
+  final enabledComparison = (right.enabled ? 1 : 0).compareTo(
+    left.enabled ? 1 : 0,
+  );
+  if (enabledComparison != 0) {
+    return enabledComparison;
+  }
+
+  final typeComparison = left.type.index.compareTo(right.type.index);
+  if (typeComparison != 0) {
+    return typeComparison;
+  }
+
+  return left.title.toLowerCase().compareTo(right.title.toLowerCase());
 }

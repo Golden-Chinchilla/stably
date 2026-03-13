@@ -138,6 +138,7 @@ class _FakeMarketRepository extends MarketRepository {
     return const HealthStatus(
       stablecoinsSyncedAt: _updatedAt,
       poolsSyncedAt: _updatedAt,
+      cefiSyncedAt: _updatedAt,
     );
   }
 

@@ -2,16 +2,19 @@ class HealthStatus {
   const HealthStatus({
     required this.stablecoinsSyncedAt,
     required this.poolsSyncedAt,
+    required this.cefiSyncedAt,
   });
 
   final String? stablecoinsSyncedAt;
   final String? poolsSyncedAt;
+  final String? cefiSyncedAt;
 
   factory HealthStatus.fromJson(Map<String, dynamic> json) {
     final syncState = json['syncState'] as Map<String, dynamic>? ?? const {};
     return HealthStatus(
       stablecoinsSyncedAt: syncState['stablecoins'] as String?,
       poolsSyncedAt: syncState['pools'] as String?,
+      cefiSyncedAt: syncState['cefi'] as String?,
     );
   }
 }

@@ -123,18 +123,20 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
     return stablecoinsAsync.when(
       data: (stablecoins) => poolsAsync.when(
         data: (pools) {
-          _syncSelection(stablecoins, pools);
+          final sortedStablecoins = _sortStablecoins(stablecoins);
+          final sortedPools = _sortYieldPools(pools);
+          _syncSelection(sortedStablecoins, sortedPools);
           final capital = _capital;
           final plan = _derivePlan(
-            pools: pools,
-            stablecoins: stablecoins,
+            pools: sortedPools,
+            stablecoins: sortedStablecoins,
             capital: capital,
           );
 
           return HighlightPanel(
             title: plan.rows.isEmpty
                 ? 'No plan matches the current constraints.'
-                : 'Allocate across ${plan.rows.length} live yield pools with a ${_strategy.label.toLowerCase()} bias.',
+                : 'Allocate across ${plan.rows.length} top-20 stablecoin pools with a ${_strategy.label.toLowerCase()} bias.',
             value: formatCurrency(capital),
             secondaryValue: formatPercent(plan.blendedApy),
             tag: plan.rows.isEmpty ? 'No plan' : _strategy.label,
@@ -160,10 +162,12 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
     AsyncValue<List<YieldPool>> poolsAsync,
   ) {
     return stablecoinsAsync.when(
-      data: (stablecoins) => poolsAsync.when(
+        data: (stablecoins) => poolsAsync.when(
         data: (pools) {
-          _syncSelection(stablecoins, pools);
-          final availableChains = _availableChains(pools);
+          final sortedStablecoins = _sortStablecoins(stablecoins);
+          final sortedPools = _sortYieldPools(pools);
+          _syncSelection(sortedStablecoins, sortedPools);
+          final availableChains = _availableChains(sortedPools);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +191,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final stablecoin in stablecoins.take(8))
+                  for (final stablecoin in sortedStablecoins.take(8))
                     AppFilterChip(
                       label: stablecoin.symbol,
                       selected: _selectedSymbol == stablecoin.symbol,
@@ -228,18 +232,18 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
                     child: InsightTile(
                       icon: CupertinoIcons.square_stack_fill,
                       label: 'Stablecoins',
-                      value: '${stablecoins.length}',
-                      caption: 'Available stablecoins from the backend.',
+                      value: '${sortedStablecoins.length}',
+                      caption: 'Tracked top 20 stablecoins from the backend.',
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: InsightTile(
                       icon: CupertinoIcons.chart_bar_alt_fill,
-                      label: 'Eligible pools',
-                      value: '${_eligiblePools(pools).length}',
+                          label: 'Eligible pools',
+                      value: '${_eligiblePools(sortedPools).length}',
                       caption:
-                          'Pools that match the current filters before ranking.',
+                          'Pools that match the current top-20 stablecoin filters before ranking.',
                     ),
                   ),
                 ],
@@ -286,12 +290,14 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
     AsyncValue<List<YieldPool>> poolsAsync,
   ) {
     return stablecoinsAsync.when(
-      data: (stablecoins) => poolsAsync.when(
+        data: (stablecoins) => poolsAsync.when(
         data: (pools) {
-          _syncSelection(stablecoins, pools);
+          final sortedStablecoins = _sortStablecoins(stablecoins);
+          final sortedPools = _sortYieldPools(pools);
+          _syncSelection(sortedStablecoins, sortedPools);
           final plan = _derivePlan(
-            pools: pools,
-            stablecoins: stablecoins,
+            pools: sortedPools,
+            stablecoins: sortedStablecoins,
             capital: _capital,
           );
 
@@ -299,7 +305,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
             return AppEmptyState(
               title: 'No allocation plan yet',
               description:
-                  'No live yield pools match the selected stablecoin, chain scope, or minimum TVL.',
+                  'No top-20 stablecoin pools match the selected stablecoin, chain scope, or minimum TVL.',
               icon: CupertinoIcons.chart_pie,
               actionLabel: 'Reset chain scope',
               onAction: () => setState(() => _selectedChain = null),
@@ -314,7 +320,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
                 label: 'Estimated annual carry',
                 value: formatCurrency(plan.estimatedAnnualCarry),
                 caption:
-                    'Directional estimate derived from the weighted APY of the selected live pools.',
+                    'Directional estimate derived from the weighted APY of the selected top-20 stablecoin pools.',
                 tag: '${plan.rows.length} pools',
                 tone: StatusTagTone.success,
               ),
@@ -373,12 +379,14 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
     AsyncValue<List<YieldPool>> poolsAsync,
   ) {
     return stablecoinsAsync.when(
-      data: (stablecoins) => poolsAsync.when(
+        data: (stablecoins) => poolsAsync.when(
         data: (pools) {
-          _syncSelection(stablecoins, pools);
+          final sortedStablecoins = _sortStablecoins(stablecoins);
+          final sortedPools = _sortYieldPools(pools);
+          _syncSelection(sortedStablecoins, sortedPools);
           final plan = _derivePlan(
-            pools: pools,
-            stablecoins: stablecoins,
+            pools: sortedPools,
+            stablecoins: sortedStablecoins,
             capital: _capital,
           );
           final topRow = plan.rows.isEmpty ? null : plan.rows.first;
@@ -398,7 +406,7 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
               RiskNoticeCard(
                 title: 'Strategy changes scoring, not the source data',
                 description:
-                    'Yield-first rewards higher APY, liquidity-first rewards deeper TVL, and balanced keeps both in scope. The page remains fully driven by the same live pool board.',
+                    'Yield-first rewards higher APY, liquidity-first rewards deeper TVL, and balanced keeps both in scope. The page remains fully driven by the same top-20 stablecoin pool board.',
                 tone: StatusTagTone.success,
               ),
               const SizedBox(height: 12),
@@ -585,6 +593,28 @@ class _AllocationPageState extends ConsumerState<AllocationPage> {
       _AllocationStrategy.balanced => (apy * 0.6) + (tvlScore * 0.4),
     };
   }
+}
+
+List<Stablecoin> _sortStablecoins(List<Stablecoin> stablecoins) {
+  final sorted = [...stablecoins];
+  sorted.sort(
+    (left, right) => (right.circulatingPeggedUsd ?? 0)
+        .compareTo(left.circulatingPeggedUsd ?? 0),
+  );
+  return sorted;
+}
+
+List<YieldPool> _sortYieldPools(List<YieldPool> pools) {
+  final sorted = [...pools];
+  sorted.sort((left, right) {
+    final apyCompare = (right.apy ?? -1).compareTo(left.apy ?? -1);
+    if (apyCompare != 0) {
+      return apyCompare;
+    }
+
+    return (right.tvlUsd ?? -1).compareTo(left.tvlUsd ?? -1);
+  });
+  return sorted;
 }
 
 class _AllocationInputCard extends StatelessWidget {

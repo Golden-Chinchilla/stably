@@ -83,17 +83,35 @@ export const syncCefiProducts = async (env: Env) => {
 };
 
 export const fetchAllCefiProducts = async (env: Env) => {
-  const results = await Promise.allSettled([
-    fetchBinanceProducts(env),
-    fetchOkxProducts(env),
-  ]);
+  const sources = [
+    { exchange: 'binance', fetcher: () => fetchBinanceProducts(env) },
+    { exchange: 'okx', fetcher: () => fetchOkxProducts(env) },
+  ] as const;
+  const results = await Promise.allSettled(sources.map((source) => source.fetcher()));
 
   const products: CefiProductRecord[] = [];
 
-  for (const result of results) {
+  for (const [index, result] of results.entries()) {
+    const exchange = sources[index].exchange;
     if (result.status === 'fulfilled') {
+      console.log(
+        JSON.stringify({
+          type: 'cefi.fetch.success',
+          exchange,
+          count: result.value.length,
+        }),
+      );
       products.push(...result.value);
+      continue;
     }
+
+    console.warn(
+      JSON.stringify({
+        type: 'cefi.fetch.error',
+        exchange,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      }),
+    );
   }
 
   return products;
@@ -194,58 +212,65 @@ const fetchBinanceProducts = async (env: Env): Promise<CefiProductRecord[]> => {
 };
 
 const fetchOkxProducts = async (_env: Env): Promise<CefiProductRecord[]> => {
-  if (!_env.OKX_API_KEY || !_env.OKX_API_SECRET || !_env.OKX_API_PASSPHRASE) {
-    return [];
-  }
-
-  const payload = await signedOkxGet<{
-    data?: Array<Record<string, unknown>>;
-  }>(_env, '/api/v5/account/balance', {
-    ccy: Array.from(TARGET_STABLECOINS).join(','),
-  });
-
-  const details = payload.data?.flatMap((item) => {
-    const record = toRecord(item);
-    const inner = record.details;
-    return Array.isArray(inner) ? (inner as Array<Record<string, unknown>>) : [];
-  }) ?? [];
-
   const products: CefiProductRecord[] = [];
 
-  for (const item of details) {
-    const asset = toUpperString(item.ccy);
-    if (!isTargetStablecoin(asset)) {
-      continue;
-    }
+  for (const asset of TARGET_STABLECOINS) {
+    try {
+      const payload = await fetchJson<{
+        code?: string;
+        data?: Array<Record<string, unknown>>;
+        msg?: string;
+      }>(`${getRequiredBaseUrl(_env, 'OKX_API_BASE_URL')}/api/v5/finance/savings/lending-rate-summary?ccy=${asset}`);
 
-    const autoLendStatus = toStringValue(item.autoLendStatus);
-    if (!autoLendStatus || autoLendStatus === 'unsupported') {
-      continue;
-    }
+      const item = payload.data?.[0];
+      if (!item) {
+        continue;
+      }
 
-    products.push({
-      id: `okx:flexible:${asset}`,
-      exchange: 'okx',
-      assetSymbol: asset,
-      productName: `${asset} Auto Earn`,
-      productType: 'flexible',
-      termDays: 0,
-      status: autoLendStatus,
-      apr: null,
-      baseApr: null,
-      bonusApr: null,
-      minAmount: null,
-      maxAmount: parseNullableNumber(item.availBal),
-      quotaLimit: parseNullableNumber(item.availBal),
-      canPurchase: autoLendStatus === 'off' || autoLendStatus === 'pending' || autoLendStatus === 'active',
-      canRedeem: null,
-      requiresAuth: true,
-      startTime: null,
-      endTime: null,
-      tierRates: [],
-      sourceUrl: 'https://www.okx.com/docs-v5/en',
-      raw: item,
-    });
+      const estRate = parseFractionOrPercent(item.estRate);
+      const avgRate = parseFractionOrPercent(item.avgRate);
+
+      products.push({
+        id: `okx:flexible:${asset}`,
+        exchange: 'okx',
+        assetSymbol: asset,
+        productName: `${asset} Savings`,
+        productType: 'flexible',
+        termDays: 0,
+        status: 'available',
+        apr: estRate ?? avgRate,
+        baseApr: avgRate,
+        bonusApr: null,
+        minAmount: null,
+        maxAmount: null,
+        quotaLimit: null,
+        canPurchase: true,
+        canRedeem: true,
+        requiresAuth: false,
+        startTime: null,
+        endTime: null,
+        tierRates: [],
+        sourceUrl: 'https://www.okx.com/docs-v5/en/#financial-product-earn-get-saving-balance',
+        raw: item,
+      });
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          type: 'cefi.fetch.okx.skip',
+          asset,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
+  if (products.length === 0) {
+    console.log(
+      JSON.stringify({
+        type: 'cefi.fetch.okx.empty',
+        queriedAssets: Array.from(TARGET_STABLECOINS),
+      }),
+    );
   }
 
   return products;
@@ -274,32 +299,6 @@ const signedBinanceGet = async <T>(
   });
 };
 
-const signedOkxGet = async <T>(
-  env: Env,
-  path: string,
-  params: Record<string, string>,
-): Promise<T> => {
-  const query = new URLSearchParams(params);
-  const timestamp = new Date().toISOString();
-  const baseUrl = getRequiredBaseUrl(env, 'OKX_API_BASE_URL');
-  const requestPath = query.size > 0 ? `${path}?${query.toString()}` : path;
-  const signature = await signHmacSha256Base64(
-    env.OKX_API_SECRET!,
-    `${timestamp}GET${requestPath}`,
-  );
-
-  return fetchJson<T>(`${baseUrl}${requestPath}`, {
-    headers: {
-      'OK-ACCESS-KEY': env.OKX_API_KEY!,
-      'OK-ACCESS-SIGN': signature,
-      'OK-ACCESS-TIMESTAMP': timestamp,
-      'OK-ACCESS-PASSPHRASE': env.OKX_API_PASSPHRASE!,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-  });
-};
-
 const fetchJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, init);
 
@@ -320,18 +319,6 @@ const signHmacSha256 = async (secret: string, payload: string) => {
   );
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-};
-
-const signHmacSha256Base64 = async (secret: string, payload: string) => {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
-  return btoa(String.fromCharCode(...new Uint8Array(signature)));
 };
 
 const parseBinanceTierRates = (value: unknown) => {

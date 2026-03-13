@@ -69,15 +69,16 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           title: 'Discovery Overview',
           child: poolsAsync.when(
             data: (pools) {
-              final topPool = pools.isNotEmpty ? pools.first : null;
+              final sortedPools = _sortYieldPools(pools);
+              final topPool = sortedPools.isNotEmpty ? sortedPools.first : null;
 
               return HighlightPanel(
                 title: topPool == null
-                    ? 'Yield pool coverage is online.'
-                    : '${topPool.project} leads the tracked yield pool board.',
+                    ? 'Top 20 stablecoin pool coverage is online.'
+                    : '${topPool.project} leads the current top 20 stablecoin pool board.',
                 value: topPool == null ? '—' : formatPercent(topPool.apy),
                 secondaryValue: '${pools.length} pools',
-                tag: 'Live',
+                tag: 'Top 20',
               );
             },
             loading: () => const AppHighlightPanelSkeleton(),
@@ -91,20 +92,20 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           title: 'Search',
           child: AppSearchField(
             controller: _searchController,
-            placeholder: 'Search stablecoins, pools, or chains',
+            placeholder: 'Search top 20 stablecoins, pools, CeFi, or chains',
             onChanged: (value) =>
                 setState(() => _query = value.trim().toLowerCase()),
           ),
         ),
         SectionBlock(
-          title: 'Stablecoin Filters',
+          title: 'Top 20 Stablecoins',
           child: stablecoinsAsync.when(
             data: (stablecoins) => Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final stablecoin in _filterStablecoins(
-                  stablecoins,
+                for (final stablecoin in _sortStablecoins(
+                  _filterStablecoins(stablecoins),
                 ).take(5))
                   _StablecoinChip(stablecoin: stablecoin),
               ],
@@ -129,7 +130,9 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           title: 'Stablecoin Coverage',
           child: stablecoinsAsync.when(
             data: (stablecoins) => _StablecoinBoard(
-              stablecoins: _filterStablecoins(stablecoins).take(4).toList(),
+              stablecoins: _sortStablecoins(
+                _filterStablecoins(stablecoins),
+              ).take(4).toList(),
             ),
             loading: () => const AppListSkeleton(items: 4),
             error: (error, _) => AsyncSectionState.error(
@@ -142,13 +145,13 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           title: 'Yield Pool Board',
           child: poolsAsync.when(
             data: (pools) {
-              final filteredPools = _filterPools(pools);
+              final filteredPools = _sortYieldPools(_filterPools(pools));
 
               if (filteredPools.isEmpty) {
                 return const AppEmptyState(
                   title: 'No yield pools yet',
                   description:
-                      'No tracked yield pools match the current search or market set.',
+                      'No top-20 stablecoin pools match the current search or market set.',
                   icon: CupertinoIcons.search_circle,
                 );
               }
@@ -211,13 +214,14 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           title: 'CeFi Board',
           child: cefiAsync.when(
             data: (products) {
-              final filteredProducts = _filterCefiProducts(products);
+              final filteredProducts =
+                  _sortCefiProducts(_filterCefiProducts(products));
 
               if (filteredProducts.isEmpty) {
                 return const AppEmptyState(
                   title: 'No CeFi products yet',
                   description:
-                      'No tracked CeFi products match the current search or sync state.',
+                      'No Binance or OKX offers match the current search or sync state.',
                   icon: CupertinoIcons.building_2_fill,
                 );
               }
@@ -244,9 +248,9 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
                       Expanded(
                         child: InsightTile(
                           icon: CupertinoIcons.clock_fill,
-                          label: 'Flexible products',
+                          label: 'Flexible offers',
                           value: '$flexibleCount',
-                          caption: '${filteredProducts.length} tracked offers',
+                          caption: '${filteredProducts.length} offers from Binance and OKX',
                         ),
                       ),
                     ],
@@ -282,16 +286,16 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           child: Column(
             children: [
               RiskNoticeCard(
-                title: 'CeFi campaigns can be capacity constrained',
+                title: 'CeFi is limited to Binance and OKX',
                 description:
-                    'High APY exchange windows often apply only to a limited balance slice.',
+                    'The CeFi board currently tracks six core fields from Binance and OKX only.',
                 tone: StatusTagTone.info,
               ),
               SizedBox(height: 12),
               RiskNoticeCard(
-                title: 'Synthetic dollars need closer review',
+                title: 'DeFi is filtered to the top 20 stablecoins',
                 description:
-                    'Newer structures can offer higher yield, but risk is not directly comparable to simple fiat-backed stablecoins.',
+                    'DefiLlama pools outside the current top 20 stablecoin set are intentionally excluded from discovery.',
                 tone: StatusTagTone.warning,
               ),
             ],
@@ -374,7 +378,7 @@ class _StablecoinBoard extends StatelessWidget {
       return const AppEmptyState(
         title: 'No stablecoins yet',
         description:
-            'Run a backend sync to populate the tracked stablecoin board.',
+            'Run a backend sync to populate the current top 20 stablecoin board.',
         icon: CupertinoIcons.money_dollar_circle,
       );
     }
@@ -612,4 +616,86 @@ String _displayTerm(int? termDays) {
   }
 
   return '$termDays d';
+}
+
+List<Stablecoin> _sortStablecoins(List<Stablecoin> stablecoins) {
+  final sorted = [...stablecoins];
+  sorted.sort(
+    (left, right) => (right.circulatingPeggedUsd ?? 0)
+        .compareTo(left.circulatingPeggedUsd ?? 0),
+  );
+  return sorted;
+}
+
+List<YieldPool> _sortYieldPools(List<YieldPool> pools) {
+  final sorted = [...pools];
+  sorted.sort((left, right) {
+    final apyCompare = (right.apy ?? -1).compareTo(left.apy ?? -1);
+    if (apyCompare != 0) {
+      return apyCompare;
+    }
+
+    return (right.tvlUsd ?? -1).compareTo(left.tvlUsd ?? -1);
+  });
+  return sorted;
+}
+
+List<CefiProduct> _sortCefiProducts(List<CefiProduct> products) {
+  final assetPriority = {
+    'USDT': 0,
+    'USDC': 1,
+    'FDUSD': 2,
+    'USDE': 3,
+  };
+  final exchangePriority = {
+    'binance': 0,
+    'okx': 1,
+  };
+
+  final sorted = [...products];
+  sorted.sort((left, right) {
+    final statusCompare =
+        _statusRank(right.status).compareTo(_statusRank(left.status));
+    if (statusCompare != 0) {
+      return statusCompare;
+    }
+
+    final aprCompare = (right.apr ?? -1).compareTo(left.apr ?? -1);
+    if (aprCompare != 0) {
+      return aprCompare;
+    }
+
+    final typeCompare = _productTypeRank(left.productType)
+        .compareTo(_productTypeRank(right.productType));
+    if (typeCompare != 0) {
+      return typeCompare;
+    }
+
+    final assetCompare = (assetPriority[left.assetSymbol.toUpperCase()] ?? 99)
+        .compareTo(assetPriority[right.assetSymbol.toUpperCase()] ?? 99);
+    if (assetCompare != 0) {
+      return assetCompare;
+    }
+
+    return (exchangePriority[left.exchange.toLowerCase()] ?? 99)
+        .compareTo(exchangePriority[right.exchange.toLowerCase()] ?? 99);
+  });
+  return sorted;
+}
+
+int _statusRank(String status) {
+  return switch (status.toLowerCase()) {
+    'available' => 2,
+    'sold_out' => 1,
+    'ended' => 0,
+    _ => -1,
+  };
+}
+
+int _productTypeRank(String productType) {
+  return switch (productType.toLowerCase()) {
+    'flexible' => 0,
+    'fixed' => 1,
+    _ => 2,
+  };
 }

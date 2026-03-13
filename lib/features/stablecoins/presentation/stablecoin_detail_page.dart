@@ -68,10 +68,10 @@ class StablecoinDetailPage extends ConsumerWidget {
               title: 'Market Overview',
               child: HighlightPanel(
                 title:
-                    '${detail.stablecoin.symbol} is tracked on ${detail.stablecoin.chains.length} chains.',
+                    '${detail.stablecoin.symbol} is part of the current top 20 stablecoin set and is tracked on ${detail.stablecoin.chains.length} chains.',
                 value: formatCurrency(detail.stablecoin.circulatingPeggedUsd),
                 secondaryValue: '${detail.stablecoin.chains.length} chains',
-                tag: detail.stablecoin.pegMechanism ?? 'Tracked',
+                tag: detail.stablecoin.pegMechanism ?? 'Top 20',
                 tone: _toneForPeg(detail.stablecoin.pegMechanism),
               ),
             ),
@@ -174,19 +174,19 @@ class StablecoinDetailPage extends ConsumerWidget {
               title: 'Related Yield Pools',
               child: poolsAsync.when(
                 data: (pools) {
+                  final visiblePools = _sortPools(pools).take(3).toList();
+
                   if (pools.isEmpty) {
                     return AppEmptyState(
                       title: 'No related yield pools',
                       description: selectedChain == null
-                          ? 'There are no tracked pools for this stablecoin symbol right now.'
-                          : 'There are no tracked pools for this stablecoin symbol on $selectedChain right now.',
+                          ? 'There are no tracked top-20 stablecoin pools for this symbol right now.'
+                          : 'There are no tracked top-20 stablecoin pools for this symbol on $selectedChain right now.',
                       icon: CupertinoIcons.link,
                       actionLabel: 'Retry',
                       onAction: () => _refresh(ref),
                     );
                   }
-
-                  final visiblePools = pools.take(3).toList();
                   return Column(
                     children: [
                       for (
@@ -378,4 +378,31 @@ List<StablecoinChain> _sortChains(
     return (right.currentPeggedUsd ?? 0).compareTo(left.currentPeggedUsd ?? 0);
   });
   return sorted;
+}
+
+List<({double apy, double tvl, int index})> _rankablePools(List<dynamic> pools) {
+  return List.generate(
+    pools.length,
+    (index) => (
+      apy: ((pools[index] as dynamic).apy as num?)?.toDouble() ?? -1,
+      tvl: ((pools[index] as dynamic).tvlUsd as num?)?.toDouble() ?? -1,
+      index: index,
+    ),
+  );
+}
+
+List<T> _sortPools<T>(List<T> pools) {
+  final ranked = _rankablePools(pools);
+  ranked.sort((left, right) {
+    final apyCompare = right.apy.compareTo(left.apy);
+    if (apyCompare != 0) {
+      return apyCompare;
+    }
+
+    return right.tvl.compareTo(left.tvl);
+  });
+
+  return [
+    for (final row in ranked) pools[row.index],
+  ];
 }

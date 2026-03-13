@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stably_app/app/router/app_router.dart';
+import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
 import 'package:stably_app/features/market/data/models/yield_pool.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
@@ -14,7 +15,6 @@ import 'package:stably_app/shared/widgets/async_section_state.dart';
 import 'package:stably_app/shared/widgets/base_card.dart';
 import 'package:stably_app/shared/widgets/highlight_panel.dart';
 import 'package:stably_app/shared/widgets/insight_tile.dart';
-import 'package:stably_app/shared/widgets/mock_trend_card.dart';
 import 'package:stably_app/shared/widgets/opportunity_card.dart';
 import 'package:stably_app/shared/widgets/pill_button.dart';
 import 'package:stably_app/shared/widgets/risk_notice_card.dart';
@@ -28,6 +28,7 @@ class HomePage extends ConsumerWidget {
     await Future.wait([
       ref.refresh(stablecoinsProvider.future),
       ref.refresh(yieldPoolsProvider.future),
+      ref.refresh(cefiProductsProvider.future),
       ref.refresh(healthProvider.future),
     ]);
   }
@@ -36,6 +37,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stablecoinsAsync = ref.watch(stablecoinsProvider);
     final poolsAsync = ref.watch(yieldPoolsProvider);
+    final cefiAsync = ref.watch(cefiProductsProvider);
     final healthAsync = ref.watch(healthProvider);
 
     return AppPageScaffold(
@@ -46,21 +48,20 @@ class HomePage extends ConsumerWidget {
           title: 'Market Overview',
           child: stablecoinsAsync.when(
             data: (stablecoins) {
-              final featured = stablecoins.isNotEmpty
-                  ? stablecoins.first
-                  : null;
+              final sortedStablecoins = _sortStablecoins(stablecoins);
+              final featured =
+                  sortedStablecoins.isNotEmpty ? sortedStablecoins.first : null;
 
               return HighlightPanel(
                 title: featured == null
-                    ? 'Stablecoin coverage is online.'
-                    : '${featured.symbol} leads the tracked stablecoin set.',
+                    ? 'Top 20 stablecoin coverage is online.'
+                    : '${featured.symbol} leads the current top 20 stablecoin set.',
                 value: featured == null
                     ? '—'
                     : formatCurrency(featured.circulatingPeggedUsd),
-                secondaryValue: featured == null
-                    ? 'No data'
-                    : '${featured.chains.length} chains',
-                tag: 'Live',
+                secondaryValue:
+                    featured == null ? 'No data' : '${featured.chains.length} chains',
+                tag: 'Top 20',
                 footer: Row(
                   children: [
                     Expanded(
@@ -72,9 +73,9 @@ class HomePage extends ConsumerWidget {
                         onPressed: featured == null
                             ? null
                             : () => context.pushNamed(
-                                AppRoute.stablecoinDetail.name,
-                                pathParameters: {'id': featured.id},
-                              ),
+                                  AppRoute.stablecoinDetail.name,
+                                  pathParameters: {'id': featured.id},
+                                ),
                       ),
                     ),
                   ],
@@ -91,90 +92,87 @@ class HomePage extends ConsumerWidget {
         SectionBlock(
           title: 'Coverage Snapshot',
           child: stablecoinsAsync.when(
-            data: (stablecoins) => Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: InsightTile(
-                        icon: CupertinoIcons.shield_fill,
-                        label: 'Fiat-backed',
-                        value:
-                            '${stablecoins.where((item) => item.pegMechanism == 'fiat-backed').length}',
-                        caption:
-                            'Tracked stablecoins with a fiat-backed mechanism.',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: poolsAsync.when(
-                        data: (pools) => InsightTile(
-                          icon: CupertinoIcons.bolt_fill,
-                          label: 'Yield pools',
-                          value: '${pools.length}',
-                          caption: 'Top APY-ranked pools from DefiLlama.',
-                        ),
-                        loading: () => const AppInsightTileSkeleton(),
-                        error: (_, _) => const InsightTile(
-                          icon: CupertinoIcons.bolt_fill,
-                          label: 'Yield pools',
-                          value: '—',
-                          caption: 'Yield pool data unavailable.',
+            data: (stablecoins) {
+              final sortedStablecoins = _sortStablecoins(stablecoins);
+
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InsightTile(
+                          icon: CupertinoIcons.shield_fill,
+                          label: 'Fiat-backed',
+                          value:
+                              '${sortedStablecoins.where((item) => item.pegMechanism == 'fiat-backed').length}',
+                          caption:
+                              'Top 20 stablecoins with a fiat-backed mechanism.',
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InsightTile(
-                        icon: CupertinoIcons.money_dollar_circle,
-                        label: 'Circulating USD',
-                        value: formatCurrency(
-                          stablecoins.fold<double>(
-                            0,
-                            (sum, item) =>
-                                sum + (item.circulatingPeggedUsd ?? 0),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: poolsAsync.when(
+                          data: (pools) => InsightTile(
+                            icon: CupertinoIcons.bolt_fill,
+                            label: 'Yield pools',
+                            value: '${pools.length}',
+                            caption:
+                                'Pools linked to the current top 20 stablecoins.',
+                          ),
+                          loading: () => const AppInsightTileSkeleton(),
+                          error: (_, _) => const InsightTile(
+                            icon: CupertinoIcons.bolt_fill,
+                            label: 'Yield pools',
+                            value: '—',
+                            caption: 'Yield pool data unavailable.',
                           ),
                         ),
-                        caption:
-                            'Combined circulating USD across loaded stablecoins.',
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: healthAsync.when(
-                        data: (health) => InsightTile(
-                          icon: CupertinoIcons.clock,
-                          label: 'Last sync',
-                          value: health.stablecoinsSyncedAt == null
-                              ? '—'
-                              : 'Ready',
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InsightTile(
+                          icon: CupertinoIcons.money_dollar_circle,
+                          label: 'Circulating USD',
+                          value: formatCurrency(
+                            sortedStablecoins.fold<double>(
+                              0,
+                              (sum, item) =>
+                                  sum + (item.circulatingPeggedUsd ?? 0),
+                            ),
+                          ),
                           caption:
-                              health.stablecoinsSyncedAt ??
-                              'No sync recorded yet.',
-                        ),
-                        loading: () => const AppInsightTileSkeleton(),
-                        error: (_, _) => const InsightTile(
-                          icon: CupertinoIcons.clock,
-                          label: 'Last sync',
-                          value: '—',
-                          caption: 'Health status unavailable.',
+                              'Combined circulating USD across the tracked top 20.',
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const MockTrendCard(
-                  title: 'Projected growth view',
-                  subtitle:
-                      'Static visual retained for now; this can later use historical series.',
-                ),
-              ],
-            ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: healthAsync.when(
+                          data: (health) => InsightTile(
+                            icon: CupertinoIcons.clock,
+                            label: 'Last sync',
+                            value:
+                                health.stablecoinsSyncedAt == null ? '—' : 'Ready',
+                            caption: health.stablecoinsSyncedAt ??
+                                'No sync recorded yet.',
+                          ),
+                          loading: () => const AppInsightTileSkeleton(),
+                          error: (_, _) => const InsightTile(
+                            icon: CupertinoIcons.clock,
+                            label: 'Last sync',
+                            value: '—',
+                            caption: 'Health status unavailable.',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
             loading: () => const Column(
               children: [
                 Row(
@@ -203,10 +201,57 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
+          title: 'CeFi Snapshot',
+          child: cefiAsync.when(
+            data: (products) {
+              final sortedProducts = _sortCefiProducts(products);
+              final topProduct =
+                  sortedProducts.isNotEmpty ? sortedProducts.first : null;
+              final exchanges =
+                  sortedProducts.map((item) => item.exchange).toSet().length;
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: InsightTile(
+                      icon: CupertinoIcons.building_2_fill,
+                      label: 'CeFi offers',
+                      value: '${sortedProducts.length}',
+                      caption: 'Core rates from Binance and OKX.',
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: InsightTile(
+                      icon: CupertinoIcons.arrow_up_right_circle_fill,
+                      label: 'Top CeFi APY',
+                      value: formatPercent(topProduct?.apr),
+                      caption: topProduct == null
+                          ? 'No CeFi offers synced yet.'
+                          : '${_displayExchange(topProduct.exchange)} · ${topProduct.assetSymbol} · $exchanges venues',
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Row(
+              children: [
+                Expanded(child: AppInsightTileSkeleton()),
+                SizedBox(width: 16),
+                Expanded(child: AppInsightTileSkeleton()),
+              ],
+            ),
+            error: (error, _) => AsyncSectionState.error(
+              message: AsyncSectionState.presentError(error),
+              onRetry: () => _refresh(ref),
+            ),
+          ),
+        ),
+        SectionBlock(
           title: 'Top Yield Pools',
           child: poolsAsync.when(
             data: (pools) => _PoolList(
-              pools: pools.take(2).toList(),
+              pools: _sortYieldPools(pools).take(2).toList(),
               stablecoins: stablecoinsAsync.maybeWhen(
                 data: (items) => items,
                 orElse: () => const <Stablecoin>[],
@@ -222,8 +267,9 @@ class HomePage extends ConsumerWidget {
         SectionBlock(
           title: 'Top Stablecoins',
           child: stablecoinsAsync.when(
-            data: (stablecoins) =>
-                _StablecoinList(stablecoins: stablecoins.take(3).toList()),
+            data: (stablecoins) => _StablecoinList(
+              stablecoins: _sortStablecoins(stablecoins).take(3).toList(),
+            ),
             loading: () => const AppListSkeleton(items: 3),
             error: (error, _) => AsyncSectionState.error(
               message: AsyncSectionState.presentError(error),
@@ -243,9 +289,9 @@ class HomePage extends ConsumerWidget {
               ),
               SizedBox(height: 12),
               RiskNoticeCard(
-                title: 'Rates may move before the next refresh',
+                title: 'Current scope is intentionally narrow',
                 description:
-                    'Final pricing and campaign availability should always be checked on the target platform.',
+                    'DefiLlama data is limited to the top 20 stablecoins, and CeFi rates currently cover Binance and OKX only.',
                 tone: StatusTagTone.warning,
               ),
             ],
@@ -302,12 +348,12 @@ class _PoolList extends StatelessWidget {
                 onTap: stablecoin == null
                     ? null
                     : () => context.goNamed(
-                        AppRoute.allocate.name,
-                        queryParameters: {
-                          'symbol': stablecoin.symbol,
-                          'chain': pools[index].chain,
-                        },
-                      ),
+                          AppRoute.allocate.name,
+                          queryParameters: {
+                            'symbol': stablecoin.symbol,
+                            'chain': pools[index].chain,
+                          },
+                        ),
               );
             },
           ),
@@ -429,4 +475,94 @@ Stablecoin? _matchStablecoin(YieldPool pool, List<Stablecoin> stablecoins) {
     }
   }
   return null;
+}
+
+List<Stablecoin> _sortStablecoins(List<Stablecoin> stablecoins) {
+  final sorted = [...stablecoins];
+  sorted.sort(
+    (left, right) => (right.circulatingPeggedUsd ?? 0)
+        .compareTo(left.circulatingPeggedUsd ?? 0),
+  );
+  return sorted;
+}
+
+List<YieldPool> _sortYieldPools(List<YieldPool> pools) {
+  final sorted = [...pools];
+  sorted.sort((left, right) {
+    final apyCompare = (right.apy ?? -1).compareTo(left.apy ?? -1);
+    if (apyCompare != 0) {
+      return apyCompare;
+    }
+
+    return (right.tvlUsd ?? -1).compareTo(left.tvlUsd ?? -1);
+  });
+  return sorted;
+}
+
+List<CefiProduct> _sortCefiProducts(List<CefiProduct> products) {
+  final assetPriority = {
+    'USDT': 0,
+    'USDC': 1,
+    'FDUSD': 2,
+    'USDE': 3,
+  };
+  final exchangePriority = {
+    'binance': 0,
+    'okx': 1,
+  };
+
+  final sorted = [...products];
+  sorted.sort((left, right) {
+    final statusCompare =
+        _statusRank(right.status).compareTo(_statusRank(left.status));
+    if (statusCompare != 0) {
+      return statusCompare;
+    }
+
+    final aprCompare = (right.apr ?? -1).compareTo(left.apr ?? -1);
+    if (aprCompare != 0) {
+      return aprCompare;
+    }
+
+    final typeCompare = _productTypeRank(left.productType)
+        .compareTo(_productTypeRank(right.productType));
+    if (typeCompare != 0) {
+      return typeCompare;
+    }
+
+    final assetCompare = (assetPriority[left.assetSymbol.toUpperCase()] ?? 99)
+        .compareTo(assetPriority[right.assetSymbol.toUpperCase()] ?? 99);
+    if (assetCompare != 0) {
+      return assetCompare;
+    }
+
+    return (exchangePriority[left.exchange.toLowerCase()] ?? 99)
+        .compareTo(exchangePriority[right.exchange.toLowerCase()] ?? 99);
+  });
+  return sorted;
+}
+
+int _statusRank(String status) {
+  return switch (status.toLowerCase()) {
+    'available' => 2,
+    'sold_out' => 1,
+    'ended' => 0,
+    _ => -1,
+  };
+}
+
+int _productTypeRank(String productType) {
+  return switch (productType.toLowerCase()) {
+    'flexible' => 0,
+    'fixed' => 1,
+    _ => 2,
+  };
+}
+
+String _displayExchange(String value) {
+  return switch (value.toLowerCase()) {
+    'binance' => 'Binance',
+    'okx' => 'OKX',
+    _ => value,
+  };
 }

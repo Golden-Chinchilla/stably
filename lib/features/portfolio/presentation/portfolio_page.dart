@@ -109,6 +109,36 @@ class PortfolioPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _clearAllPositions(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Clear tracked positions'),
+        content: const Text(
+          'Remove all locally tracked positions from this device?',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear all'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(portfolioControllerProvider.notifier).clearAll();
+      if (context.mounted) {
+        AppFeedback.showInfo(context, 'Tracked positions cleared.');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final portfolioAsync = ref.watch(portfolioControllerProvider);
@@ -131,7 +161,7 @@ class PortfolioPage extends ConsumerWidget {
               return HighlightPanel(
                 title: positions.isEmpty
                     ? 'Add your first tracked position.'
-                    : 'Track ${positions.length} positions with live APY context.',
+                    : 'Track ${positions.length} positions with current market APY context.',
                 value: formatCurrency(summary.totalAmount),
                 secondaryValue: formatCurrency(summary.estimatedAnnualCarry),
                 tag: positions.isEmpty ? 'Empty' : 'Tracking',
@@ -142,25 +172,6 @@ class PortfolioPage extends ConsumerWidget {
                         label: 'Add position',
                         icon: CupertinoIcons.add,
                         onPressed: () => _openPositionForm(context, ref),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PillButton(
-                        label: positions.isEmpty ? 'Load demo' : 'Reload demo',
-                        icon: CupertinoIcons.arrow_down_doc,
-                        isPrimary: false,
-                        onPressed: () async {
-                          await ref
-                              .read(portfolioControllerProvider.notifier)
-                              .seedDemoFromLivePools();
-                          if (context.mounted) {
-                            AppFeedback.showInfo(
-                              context,
-                              'Demo positions loaded.',
-                            );
-                          }
-                        },
                       ),
                     ),
                   ],
@@ -191,14 +202,7 @@ class PortfolioPage extends ConsumerWidget {
                 icon: CupertinoIcons.trash,
                 isPrimary: false,
                 compact: true,
-                onPressed: () async {
-                  await ref
-                      .read(portfolioControllerProvider.notifier)
-                      .clearAll();
-                  if (context.mounted) {
-                    AppFeedback.showInfo(context, 'Tracked positions cleared.');
-                  }
-                },
+                onPressed: () => _clearAllPositions(context, ref),
               ),
             ],
           ),
@@ -291,27 +295,33 @@ class PortfolioPage extends ConsumerWidget {
                 return AppEmptyState(
                   title: 'No tracked positions yet',
                   description:
-                      'Add a position manually or load a demo set from the current yield pool board.',
+                      'Add a position manually to start tracking your current stablecoin exposure.',
                   icon: CupertinoIcons.briefcase,
                   actionLabel: 'Add position',
                   onAction: () => _openPositionForm(context, ref),
                 );
               }
 
+              final sortedPositions = [...positions]..sort(_comparePositions);
+
               final cards = <Widget>[
-                for (var index = 0; index < positions.length; index++) ...[
+                for (var index = 0; index < sortedPositions.length; index++) ...[
                   _PortfolioPositionCard(
-                    position: positions[index],
-                    livePool: _findMatchingPool(positions[index], livePools),
+                    position: sortedPositions[index],
+                    livePool: _findMatchingPool(
+                      sortedPositions[index],
+                      livePools,
+                    ),
                     onEdit: () => _openPositionForm(
                       context,
                       ref,
-                      initialPosition: positions[index],
+                      initialPosition: sortedPositions[index],
                     ),
                     onDelete: () =>
-                        _deletePosition(context, ref, positions[index]),
+                        _deletePosition(context, ref, sortedPositions[index]),
                   ),
-                  if (index != positions.length - 1) const SizedBox(height: 16),
+                  if (index != sortedPositions.length - 1)
+                    const SizedBox(height: 16),
                 ],
               ];
 
@@ -403,7 +413,7 @@ class _PortfolioPositionCard extends StatelessWidget {
           Text(
             livePool == null
                 ? 'Tracked locally. No live yield pool match was found for this position.'
-                : 'Matched against the current yield pool board for updated APY context.',
+                : 'Matched against the current market pool board for updated APY context.',
             style: theme.textTheme.bodySmall,
           ),
           if ((position.note ?? '').trim().isNotEmpty) ...[
@@ -548,12 +558,12 @@ class _PortfolioPositionFormSheetState
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Store a local position for a stablecoin, platform, and chain.',
+                  'Store a local position for a stablecoin, platform, and chain. Current market matches can be used to prefill the form.',
                   style: theme.textTheme.bodySmall,
                 ),
                 if (suggestions.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text('Quick suggestions', style: theme.textTheme.titleSmall),
+                  Text('Market matches', style: theme.textTheme.titleSmall),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -766,4 +776,13 @@ YieldPool? _findMatchingPool(
   }
 
   return null;
+}
+
+int _comparePositions(PortfolioPosition left, PortfolioPosition right) {
+  final amountComparison = right.amount.compareTo(left.amount);
+  if (amountComparison != 0) {
+    return amountComparison;
+  }
+
+  return right.createdAt.compareTo(left.createdAt);
 }

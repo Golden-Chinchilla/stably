@@ -74,7 +74,7 @@ const fetchTrackedYieldPools = async (
     .filter((item) =>
       !trackedSymbols || trackedSymbols.size === 0
         ? true
-        : matchesTrackedStablecoinSymbol(item.symbol, trackedSymbols),
+        : isTrackedStablecoinPool(item.symbol, trackedSymbols),
     )
     .map((item) => ({
       pool: item.pool,
@@ -365,7 +365,7 @@ const buildTrackedStablecoinSymbols = (stablecoins: StablecoinRecord[]) =>
       .filter((item): item is string => item.length > 0),
   );
 
-const matchesTrackedStablecoinSymbol = (
+const isTrackedStablecoinPool = (
   symbol: string,
   trackedSymbols: ReadonlySet<string>,
 ) => {
@@ -374,13 +374,16 @@ const matchesTrackedStablecoinSymbol = (
     return true;
   }
 
-  for (const token of tokenizePoolSymbol(symbol)) {
-    if (trackedSymbols.has(token)) {
-      return true;
-    }
+  if (!hasOnlySupportedPoolSymbolChars(symbol)) {
+    return false;
   }
 
-  return false;
+  const tokens = tokenizePoolSymbol(symbol);
+  if (tokens.length === 0) {
+    return false;
+  }
+
+  return tokens.every((token) => trackedSymbols.has(token));
 };
 
 const tokenizePoolSymbol = (symbol: string) =>
@@ -397,6 +400,9 @@ const normalizeTrackedSymbol = (symbol: string) =>
     .trim()
     .toUpperCase()
     .replace(/\.E$/, '');
+
+const hasOnlySupportedPoolSymbolChars = (symbol: string) =>
+  /^[A-Z0-9.\-_/+: ]+$/i.test(symbol.trim());
 
 const ensureSnapshot = (value: unknown): SnapshotRecord => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
