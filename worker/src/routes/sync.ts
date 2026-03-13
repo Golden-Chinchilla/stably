@@ -21,10 +21,8 @@ syncRoutes.get('/sync', async (context) => {
 
 syncRoutes.post('/sync', async (context) => {
   await ensureSchema(context.env);
-  const [result, cefi] = await Promise.all([
-    syncAll(context.env),
-    syncCefiProducts(context.env),
-  ]);
+  const result = await syncAll(context.env);
+  const cefi = await syncCefiProducts(context.env);
 
   return context.json(
     jsonOk({

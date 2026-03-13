@@ -192,7 +192,6 @@ export const syncStablecoins = async (
     }
   }
 
-  await upsertSyncState(env, 'stablecoins:lastSyncAt', timestamp);
   return {
     count: stablecoinData.length,
     chainCount: chainData.length,
@@ -240,7 +239,6 @@ export const syncYieldPools = async (
     );
   }
 
-  await upsertSyncState(env, 'yieldPools:lastSyncAt', timestamp);
   return { count: data.length, syncedAt: timestamp };
 };
 
@@ -259,6 +257,8 @@ export const syncAll = async (env: Env) => {
     const durationMs = String(Date.now() - startedAt);
 
     await Promise.all([
+      setSyncLifecycleState(env, 'stablecoins:lastSyncAt', finishedAt),
+      setSyncLifecycleState(env, 'yieldPools:lastSyncAt', finishedAt),
       setSyncLifecycleState(env, 'sync:lastSuccessAt', finishedAt),
       setSyncLifecycleState(env, 'sync:lastDurationMs', durationMs),
       setSyncLifecycleState(env, 'sync:lastStatus', 'success'),

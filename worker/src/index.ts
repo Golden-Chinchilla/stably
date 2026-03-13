@@ -90,31 +90,41 @@ export default {
       const { syncAll } = await import('./lib/defillama');
       const { syncCefiProducts } = await import('./lib/cefi');
 
-      const defiStartedAt = Date.now();
-      const defi = await syncAll(env);
-      console.log(
-        JSON.stringify({
-          type: 'scheduled.sync.defi',
-          trigger,
-          durationMs: Date.now() - defiStartedAt,
-          stablecoins: defi.stablecoins.count,
-          stablecoinChains: defi.stablecoins.chainCount,
-          pools: defi.pools.count,
-          status: defi.meta.status,
-        }),
-      );
-
-      const cefiStartedAt = Date.now();
-      const cefi = await syncCefiProducts(env);
-      console.log(
-        JSON.stringify({
-          type: 'scheduled.sync.cefi',
-          trigger,
-          durationMs: Date.now() - cefiStartedAt,
-          products: cefi.count,
-          exchanges: cefi.exchanges,
-        }),
-      );
+      if (trigger === '*/10 * * * *') {
+        const defiStartedAt = Date.now();
+        const defi = await syncAll(env);
+        console.log(
+          JSON.stringify({
+            type: 'scheduled.sync.defi',
+            trigger,
+            durationMs: Date.now() - defiStartedAt,
+            stablecoins: defi.stablecoins.count,
+            stablecoinChains: defi.stablecoins.chainCount,
+            pools: defi.pools.count,
+            status: defi.meta.status,
+          }),
+        );
+      } else if (trigger === '5-59/10 * * * *') {
+        const cefiStartedAt = Date.now();
+        const cefi = await syncCefiProducts(env);
+        console.log(
+          JSON.stringify({
+            type: 'scheduled.sync.cefi',
+            trigger,
+            durationMs: Date.now() - cefiStartedAt,
+            products: cefi.count,
+            exchanges: cefi.exchanges,
+          }),
+        );
+      } else {
+        console.log(
+          JSON.stringify({
+            type: 'scheduled.skip',
+            trigger,
+            reason: 'unrecognized trigger',
+          }),
+        );
+      }
 
       console.log(
         JSON.stringify({
