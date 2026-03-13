@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 const STABLECOINS_URL = 'https://stablecoins.llama.fi/stablecoins';
 const YIELDS_URL = 'https://yields.llama.fi/pools';
 const INSERT_CHUNK_SIZE = 50;
+const MAX_TRACKED_STABLECOINS = 20;
 
 const nowIso = () => new Date().toISOString();
 
@@ -34,53 +35,74 @@ export const fetchStablecoins = async (): Promise<StablecoinRecord[]> => {
   const payload = await fetchJson<unknown>(STABLECOINS_URL);
   const parsed = stablecoinsResponseSchema.parse(payload);
 
-  return parsed.peggedAssets.map((item) => ({
-    id: item.id,
-    name: item.name,
-    symbol: item.symbol,
-    geckoId: item.gecko_id,
-    price: item.price,
-    chains: item.chains,
-    circulating: item.circulating,
-    circulatingPrevDay: item.circulatingPrevDay,
-    circulatingPrevWeek: item.circulatingPrevWeek,
-    circulatingPrevMonth: item.circulatingPrevMonth,
-    chainCirculating: item.chainCirculating,
-    pegMechanism: item.pegMechanism,
-    priceSource: item.priceSource,
-    pegType: item.pegType,
-  }));
+  return parsed.peggedAssets
+    .slice()
+    .sort(
+      (left, right) =>
+        getCirculatingPeggedUsd(right.circulating) - getCirculatingPeggedUsd(left.circulating),
+    )
+    .slice(0, MAX_TRACKED_STABLECOINS)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      symbol: item.symbol,
+      geckoId: item.gecko_id,
+      price: item.price,
+      chains: item.chains,
+      circulating: item.circulating,
+      circulatingPrevDay: item.circulatingPrevDay,
+      circulatingPrevWeek: item.circulatingPrevWeek,
+      circulatingPrevMonth: item.circulatingPrevMonth,
+      chainCirculating: item.chainCirculating,
+      pegMechanism: item.pegMechanism,
+      priceSource: item.priceSource,
+      pegType: item.pegType,
+    }));
 };
 
-export const fetchYieldPools = async (): Promise<YieldPoolRecord[]> => {
+export const fetchYieldPools = (
+  trackedSymbols?: ReadonlySet<string>,
+): Promise<YieldPoolRecord[]> => fetchTrackedYieldPools(trackedSymbols);
+
+const fetchTrackedYieldPools = async (
+  trackedSymbols?: ReadonlySet<string>,
+): Promise<YieldPoolRecord[]> => {
   const payload = await fetchJson<unknown>(YIELDS_URL);
   const parsed = yieldsResponseSchema.parse(payload);
 
-  return parsed.data.map((item) => ({
-    pool: item.pool,
-    project: item.project,
-    chain: item.chain,
-    symbol: item.symbol,
-    apy: item.apy,
-    tvlUsd: item.tvlUsd,
-    poolMeta: item.poolMeta,
-  }));
+  return parsed.data
+    .filter((item) =>
+      !trackedSymbols || trackedSymbols.size === 0
+        ? true
+        : matchesTrackedStablecoinSymbol(item.symbol, trackedSymbols),
+    )
+    .map((item) => ({
+      pool: item.pool,
+      project: item.project,
+      chain: item.chain,
+      symbol: item.symbol,
+      apy: item.apy,
+      tvlUsd: item.tvlUsd,
+      poolMeta: item.poolMeta,
+    }));
 };
 
-export const syncStablecoins = async (env: Env) => {
+export const syncStablecoins = async (
+  env: Env,
+  data?: StablecoinRecord[],
+) => {
   const db = getDb(env);
   const timestamp = nowIso();
-  const data = await fetchStablecoins();
-  const chainData = data.flatMap(buildStablecoinChainRecords);
+  const stablecoinData = data ?? await fetchStablecoins();
+  const chainData = stablecoinData.flatMap(buildStablecoinChainRecords);
+  await db.delete(stablecoinChains);
+  await db.delete(stablecoinMetrics);
+  await db.delete(stablecoins);
 
-  if (data.length > 0) {
-    await db.delete(stablecoinChains);
-    await db.delete(stablecoinMetrics);
-    await db.delete(stablecoins);
-
+  if (stablecoinData.length > 0) {
     await executeBatchedStatements(
       env,
-      data.map((item) =>
+      stablecoinData.map((item) =>
         env.DB.prepare(
           `
             INSERT INTO stablecoins (
@@ -115,7 +137,7 @@ export const syncStablecoins = async (env: Env) => {
 
     await executeBatchedStatements(
       env,
-      data.map((item) =>
+      stablecoinData.map((item) =>
         env.DB.prepare(
           `
             INSERT INTO stablecoin_metrics (
@@ -172,19 +194,22 @@ export const syncStablecoins = async (env: Env) => {
 
   await upsertSyncState(env, 'stablecoins:lastSyncAt', timestamp);
   return {
-    count: data.length,
+    count: stablecoinData.length,
     chainCount: chainData.length,
     syncedAt: timestamp,
   };
 };
 
-export const syncYieldPools = async (env: Env) => {
+export const syncYieldPools = async (
+  env: Env,
+  trackedSymbols?: ReadonlySet<string>,
+) => {
   const db = getDb(env);
   const timestamp = nowIso();
-  const data = await fetchYieldPools();
+  const data = await fetchYieldPools(trackedSymbols);
+  await db.delete(yieldPools);
 
   if (data.length > 0) {
-    await db.delete(yieldPools);
     await executeBatchedStatements(
       env,
       data.map((item) =>
@@ -226,8 +251,10 @@ export const syncAll = async (env: Env) => {
   await setSyncLifecycleState(env, 'sync:lastAttemptAt', attemptedAt);
 
   try {
-    const stablecoinResult = await syncStablecoins(env);
-    const poolResult = await syncYieldPools(env);
+    const trackedStablecoins = await fetchStablecoins();
+    const trackedSymbols = buildTrackedStablecoinSymbols(trackedStablecoins);
+    const stablecoinResult = await syncStablecoins(env, trackedStablecoins);
+    const poolResult = await syncYieldPools(env, trackedSymbols);
     const finishedAt = nowIso();
     const durationMs = String(Date.now() - startedAt);
 
@@ -331,6 +358,46 @@ const buildStablecoinChainRecords = (stablecoin: StablecoinRecord): StablecoinCh
   });
 };
 
+const buildTrackedStablecoinSymbols = (stablecoins: StablecoinRecord[]) =>
+  new Set(
+    stablecoins
+      .map((item) => normalizeTrackedSymbol(item.symbol))
+      .filter((item): item is string => item.length > 0),
+  );
+
+const matchesTrackedStablecoinSymbol = (
+  symbol: string,
+  trackedSymbols: ReadonlySet<string>,
+) => {
+  const normalized = normalizeTrackedSymbol(symbol);
+  if (normalized && trackedSymbols.has(normalized)) {
+    return true;
+  }
+
+  for (const token of tokenizePoolSymbol(symbol)) {
+    if (trackedSymbols.has(token)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const tokenizePoolSymbol = (symbol: string) =>
+  symbol
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map(normalizeTrackedSymbol)
+    .filter((item): item is string => item.length > 0);
+
+const normalizeTrackedSymbol = (symbol: string) =>
+  symbol
+    .trim()
+    .toUpperCase()
+    .replace(/\.E$/, '');
+
 const ensureSnapshot = (value: unknown): SnapshotRecord => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -351,3 +418,8 @@ const executeBatchedStatements = async (
 
 const truncateValue = (value: string, maxLength = 300) =>
   value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
+
+const getCirculatingPeggedUsd = (value: SnapshotRecord) => {
+  const raw = value.peggedUSD;
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+};

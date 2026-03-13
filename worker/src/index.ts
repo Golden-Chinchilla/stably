@@ -72,11 +72,68 @@ app.onError((error, context) => {
 
 export default {
   fetch: app.fetch,
-  scheduled: async (_event: ScheduledController, env: Env) => {
-    await ensureSchema(env);
-    const { syncAll } = await import('./lib/defillama');
-    const { syncCefiProducts } = await import('./lib/cefi');
-    await Promise.all([syncAll(env), syncCefiProducts(env)]);
+  scheduled: async (event: ScheduledController, env: Env) => {
+    const startedAt = Date.now();
+    const trigger = event.cron;
+
+    console.log(
+      JSON.stringify({
+        type: 'scheduled.start',
+        trigger,
+        scheduledTime: event.scheduledTime,
+      }),
+    );
+
+    try {
+      await ensureSchema(env);
+
+      const { syncAll } = await import('./lib/defillama');
+      const { syncCefiProducts } = await import('./lib/cefi');
+
+      const defiStartedAt = Date.now();
+      const defi = await syncAll(env);
+      console.log(
+        JSON.stringify({
+          type: 'scheduled.sync.defi',
+          trigger,
+          durationMs: Date.now() - defiStartedAt,
+          stablecoins: defi.stablecoins.count,
+          stablecoinChains: defi.stablecoins.chainCount,
+          pools: defi.pools.count,
+          status: defi.meta.status,
+        }),
+      );
+
+      const cefiStartedAt = Date.now();
+      const cefi = await syncCefiProducts(env);
+      console.log(
+        JSON.stringify({
+          type: 'scheduled.sync.cefi',
+          trigger,
+          durationMs: Date.now() - cefiStartedAt,
+          products: cefi.count,
+          exchanges: cefi.exchanges,
+        }),
+      );
+
+      console.log(
+        JSON.stringify({
+          type: 'scheduled.success',
+          trigger,
+          durationMs: Date.now() - startedAt,
+        }),
+      );
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          type: 'scheduled.error',
+          trigger,
+          durationMs: Date.now() - startedAt,
+          error: formatErrorDetails(error),
+        }),
+      );
+      throw error;
+    }
   },
 };
 
