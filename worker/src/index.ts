@@ -6,6 +6,7 @@ import { jsonError, jsonOk } from './lib/http';
 import type { Env } from './lib/types';
 import { healthRoutes } from './routes/health';
 import { poolRoutes } from './routes/pools';
+import { cefiRoutes } from './routes/cefi';
 import { stablecoinRoutes } from './routes/stablecoins';
 import { syncRoutes } from './routes/sync';
 
@@ -33,6 +34,7 @@ app.get('/', async (context) => {
         '/api/stablecoin-chains',
         '/api/chains/:chain/stablecoins',
         '/api/pools',
+        '/api/cefi-products',
         '/api/sync',
       ],
     }),
@@ -43,6 +45,7 @@ app.route('/api', healthRoutes);
 app.route('/api', syncRoutes);
 app.route('/api', stablecoinRoutes);
 app.route('/api', poolRoutes);
+app.route('/api', cefiRoutes);
 
 app.notFound((context) =>
   context.json(jsonError('Route not found', { code: 'NOT_FOUND' }), 404),
@@ -72,7 +75,8 @@ export default {
   scheduled: async (_event: ScheduledController, env: Env) => {
     await ensureSchema(env);
     const { syncAll } = await import('./lib/defillama');
-    await syncAll(env);
+    const { syncCefiProducts } = await import('./lib/cefi');
+    await Promise.all([syncAll(env), syncCefiProducts(env)]);
   },
 };
 

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/health_status.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
 import 'package:stably_app/features/market/data/models/stablecoin_chain.dart';
@@ -95,6 +96,33 @@ class MarketRepository {
     return (body['data'] as List? ?? const [])
         .map(
           (item) => YieldPool.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
+
+  Future<List<CefiProduct>> fetchCefiProducts({
+    int limit = 20,
+    String? asset,
+    String? exchange,
+    String? productType,
+  }) async {
+    final queryParameters = {
+      'limit': limit,
+      'asset': asset,
+      'exchange': exchange,
+      'productType': productType,
+    }..removeWhere((key, value) => value == null);
+
+    final body = await _client.getJson(
+      '/api/cefi-products',
+      queryParameters: queryParameters,
+    );
+
+    return (body['data'] as List? ?? const [])
+        .map(
+          (item) => CefiProduct.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
         )
         .toList();
   }

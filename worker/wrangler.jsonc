@@ -6,6 +6,10 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "BINANCE_API_BASE_URL": "https://api.binance.com",
+    "OKX_API_BASE_URL": "https://www.okx.com",
+  },
   "d1_databases": [
     {
       "binding": "DB",

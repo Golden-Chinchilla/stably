@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { ensureSchema } from '../lib/bootstrap';
+import { syncCefiProducts } from '../lib/cefi';
 import { syncAll } from '../lib/defillama';
 import { jsonOk } from '../lib/http';
 import type { Env } from '../lib/types';
@@ -20,9 +21,15 @@ syncRoutes.get('/sync', async (context) => {
 
 syncRoutes.post('/sync', async (context) => {
   await ensureSchema(context.env);
-  const result = await syncAll(context.env);
+  const [result, cefi] = await Promise.all([
+    syncAll(context.env),
+    syncCefiProducts(context.env),
+  ]);
 
   return context.json(
-    jsonOk(result),
+    jsonOk({
+      ...result,
+      cefi,
+    }),
   );
 });

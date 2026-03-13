@@ -47,3 +47,4 @@ app.*.map.json
 
 
 worker/node_modules/
+worker/.env

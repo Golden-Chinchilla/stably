@@ -53,6 +53,31 @@ export const yieldPools = sqliteTable('yield_pools', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const cefiProducts = sqliteTable('cefi_products', {
+  id: text('id').primaryKey(),
+  exchange: text('exchange').notNull(),
+  assetSymbol: text('asset_symbol').notNull(),
+  productName: text('product_name').notNull(),
+  productType: text('product_type').notNull(),
+  termDays: real('term_days'),
+  status: text('status'),
+  apr: real('apr'),
+  baseApr: real('base_apr'),
+  bonusApr: real('bonus_apr'),
+  minAmount: real('min_amount'),
+  maxAmount: real('max_amount'),
+  quotaLimit: real('quota_limit'),
+  canPurchase: text('can_purchase'),
+  canRedeem: text('can_redeem'),
+  requiresAuth: text('requires_auth').notNull(),
+  startTime: text('start_time'),
+  endTime: text('end_time'),
+  tierRatesJson: text('tier_rates_json').notNull(),
+  sourceUrl: text('source_url'),
+  rawJson: text('raw_json').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export const syncState = sqliteTable('sync_state', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

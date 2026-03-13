@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/health_status.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
 import 'package:stably_app/features/market/data/models/stablecoin_chain.dart';
@@ -32,6 +33,11 @@ final stablecoinChainsProvider = FutureProvider<List<StablecoinChain>>((
 final yieldPoolsProvider = FutureProvider<List<YieldPool>>((ref) async {
   final repository = ref.watch(marketRepositoryProvider);
   return repository.fetchYieldPools(limit: 12);
+});
+
+final cefiProductsProvider = FutureProvider<List<CefiProduct>>((ref) async {
+  final repository = ref.watch(marketRepositoryProvider);
+  return repository.fetchCefiProducts(limit: 12);
 });
 
 final yieldPoolsBySymbolProvider =

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
-import { stablecoinChains, stablecoins, yieldPools } from '../db/schema';
+import { cefiProducts, stablecoinChains, stablecoins, yieldPools } from '../db/schema';
 import { ensureSchema } from '../lib/bootstrap';
 import { getSyncStates } from '../lib/defillama';
 import { getDb } from '../lib/db';
@@ -13,10 +13,11 @@ healthRoutes.get('/health', async (context) => {
   await ensureSchema(context.env);
   const db = getDb(context.env);
 
-  const [syncStates, stablecoinCountRows, stablecoinChainCountRows, poolCountRows] = await Promise.all([
+  const [syncStates, stablecoinCountRows, stablecoinChainCountRows, poolCountRows, cefiCountRows] = await Promise.all([
     getSyncStates(context.env, [
       'stablecoins:lastSyncAt',
       'yieldPools:lastSyncAt',
+      'cefi:lastSyncAt',
       'sync:lastAttemptAt',
       'sync:lastSuccessAt',
       'sync:lastFailureAt',
@@ -27,6 +28,7 @@ healthRoutes.get('/health', async (context) => {
     db.select({ count: sql<number>`count(*)` }).from(stablecoins),
     db.select({ count: sql<number>`count(*)` }).from(stablecoinChains),
     db.select({ count: sql<number>`count(*)` }).from(yieldPools),
+    db.select({ count: sql<number>`count(*)` }).from(cefiProducts),
   ]);
 
   return context.json(
@@ -34,6 +36,7 @@ healthRoutes.get('/health', async (context) => {
       syncState: {
         stablecoins: syncStates.get('stablecoins:lastSyncAt')?.value ?? null,
         pools: syncStates.get('yieldPools:lastSyncAt')?.value ?? null,
+        cefi: syncStates.get('cefi:lastSyncAt')?.value ?? null,
         lastAttemptAt: syncStates.get('sync:lastAttemptAt')?.value ?? null,
         lastSuccessAt: syncStates.get('sync:lastSuccessAt')?.value ?? null,
         lastFailureAt: syncStates.get('sync:lastFailureAt')?.value ?? null,
@@ -45,6 +48,7 @@ healthRoutes.get('/health', async (context) => {
         stablecoins: stablecoinCountRows[0]?.count ?? 0,
         stablecoinChains: stablecoinChainCountRows[0]?.count ?? 0,
         pools: poolCountRows[0]?.count ?? 0,
+        cefiProducts: cefiCountRows[0]?.count ?? 0,
       },
     }),
   );

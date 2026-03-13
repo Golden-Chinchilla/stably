@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stably_app/app/router/app_router.dart';
+import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
 import 'package:stably_app/features/market/data/models/yield_pool.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
@@ -50,6 +51,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
     await Future.wait([
       ref.refresh(yieldPoolsProvider.future),
       ref.refresh(stablecoinsProvider.future),
+      ref.refresh(cefiProductsProvider.future),
     ]);
   }
 
@@ -57,6 +59,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
   Widget build(BuildContext context) {
     final poolsAsync = ref.watch(yieldPoolsProvider);
     final stablecoinsAsync = ref.watch(stablecoinsProvider);
+    final cefiAsync = ref.watch(cefiProductsProvider);
 
     return AppPageScaffold(
       title: 'Yield Discovery',
@@ -204,6 +207,76 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
             ),
           ),
         ),
+        SectionBlock(
+          title: 'CeFi Board',
+          child: cefiAsync.when(
+            data: (products) {
+              final filteredProducts = _filterCefiProducts(products);
+
+              if (filteredProducts.isEmpty) {
+                return const AppEmptyState(
+                  title: 'No CeFi products yet',
+                  description:
+                      'No tracked CeFi products match the current search or sync state.',
+                  icon: CupertinoIcons.building_2_fill,
+                );
+              }
+
+              final topProduct = filteredProducts.first;
+              final flexibleCount = filteredProducts
+                  .where((item) => item.productType == 'flexible')
+                  .length;
+
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InsightTile(
+                          icon: CupertinoIcons.building_2_fill,
+                          label: 'Top CeFi APY',
+                          value: formatPercent(topProduct.apr),
+                          caption:
+                              '${_displayExchange(topProduct.exchange)} · ${topProduct.assetSymbol}',
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: InsightTile(
+                          icon: CupertinoIcons.clock_fill,
+                          label: 'Flexible products',
+                          value: '$flexibleCount',
+                          caption: '${filteredProducts.length} tracked offers',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _DiscoverCefiList(
+                    products: filteredProducts.take(3).toList(),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: AppInsightTileSkeleton()),
+                    SizedBox(width: 16),
+                    Expanded(child: AppInsightTileSkeleton()),
+                  ],
+                ),
+                SizedBox(height: 16),
+                AppListSkeleton(items: 3),
+              ],
+            ),
+            error: (error, _) => AsyncSectionState.error(
+              message: AsyncSectionState.presentError(error),
+              onRetry: _refresh,
+            ),
+          ),
+        ),
         const SectionBlock(
           title: 'Research Notes',
           child: Column(
@@ -252,6 +325,21 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
         pool.symbol,
         pool.chain,
         pool.poolMeta ?? '',
+      ].join(' ').toLowerCase();
+      return haystack.contains(_query);
+    }).toList();
+  }
+
+  List<CefiProduct> _filterCefiProducts(List<CefiProduct> products) {
+    if (_query.isEmpty) {
+      return products;
+    }
+    return products.where((product) {
+      final haystack = [
+        product.exchange,
+        product.assetSymbol,
+        product.productType,
+        product.status,
       ].join(' ').toLowerCase();
       return haystack.contains(_query);
     }).toList();
@@ -452,4 +540,76 @@ class _DiscoverPoolList extends StatelessWidget {
           .slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutCubic),
     );
   }
+}
+
+class _DiscoverCefiList extends StatelessWidget {
+  const _DiscoverCefiList({required this.products});
+
+  final List<CefiProduct> products;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <Widget>[
+      for (var index = 0; index < products.length; index++) ...[
+        OpportunityCard(
+          icon: products[index].productType == 'fixed'
+              ? CupertinoIcons.lock_fill
+              : CupertinoIcons.building_2_fill,
+          platform: _displayExchange(products[index].exchange),
+          asset: products[index].assetSymbol,
+          apy: formatPercent(products[index].apr),
+          summary:
+              '${_displayProductType(products[index].productType)} · ${_displayStatus(products[index].status)}',
+          tags: [
+            _displayProductType(products[index].productType),
+            _displayTerm(products[index].termDays),
+            _displayStatus(products[index].status),
+          ],
+          tone: (products[index].apr ?? 0) >= 10
+              ? StatusTagTone.success
+              : StatusTagTone.info,
+        ),
+        if (index != products.length - 1) const SizedBox(height: 16),
+      ],
+    ];
+
+    return Column(
+      children: cards
+          .animate(interval: 50.ms)
+          .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+          .slideY(begin: 0.1, duration: 400.ms, curve: Curves.easeOutCubic),
+    );
+  }
+}
+
+String _displayExchange(String value) {
+  return switch (value.toLowerCase()) {
+    'binance' => 'Binance',
+    'okx' => 'OKX',
+    _ => value,
+  };
+}
+
+String _displayProductType(String value) {
+  return switch (value.toLowerCase()) {
+    'fixed' => 'Fixed',
+    _ => 'Flexible',
+  };
+}
+
+String _displayStatus(String value) {
+  return switch (value.toLowerCase()) {
+    'available' => 'Available',
+    'sold_out' => 'Sold out',
+    'ended' => 'Ended',
+    _ => 'Unknown',
+  };
+}
+
+String _displayTerm(int? termDays) {
+  if (termDays == null || termDays == 0) {
+    return 'Flexible';
+  }
+
+  return '$termDays d';
 }
