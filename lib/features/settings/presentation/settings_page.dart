@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stably_app/app/l10n/app_localizations.dart';
 import 'package:stably_app/app/providers/app_state_providers.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
+import 'package:stably_app/shared/widgets/app_segmented_control.dart';
 import 'package:stably_app/shared/widgets/app_page_scaffold.dart';
 import 'package:stably_app/shared/widgets/async_section_state.dart';
 import 'package:stably_app/shared/widgets/base_card.dart';
@@ -15,29 +17,31 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
     final healthAsync = ref.watch(healthProvider);
     final isDark = themeMode == ThemeMode.dark;
     final theme = Theme.of(context);
 
     return AppPageScaffold(
-      title: 'Settings',
+      title: context.tr('Settings'),
       showSettingsButton: false,
       children: [
-        const SectionBlock(
-          title: 'Product tone',
+        SectionBlock(
+          title: context.tr('Product tone'),
           child: HighlightPanel(
-            title:
-                'The current product scope is intentionally narrow and data-led.',
+            title: context.tr(
+              'The current product scope is intentionally narrow and data-led.',
+            ),
             value: 'Top 20',
             secondaryValue: 'Binance + OKX',
-            tag: 'Current scope',
+            tag: context.tr('Current scope'),
             tone: StatusTagTone.info,
           ),
         ),
         SectionBlock(
-          title: 'Appearance',
+          title: context.tr('Appearance'),
           trailing: StatusTag(
-            label: isDark ? 'Dark' : 'Light',
+            label: isDark ? context.tr('Dark') : context.tr('Light'),
             tone: StatusTagTone.info,
           ),
           child: BaseCard(
@@ -47,10 +51,15 @@ class SettingsPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Theme mode', style: theme.textTheme.titleMedium),
+                      Text(
+                        context.tr('Theme mode'),
+                        style: theme.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       Text(
-                        'Switch between warm daylight and quiet luxury dark mode.',
+                        context.tr(
+                          'Switch between warm daylight and quiet luxury dark mode.',
+                        ),
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -67,20 +76,52 @@ class SettingsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Data scope',
+          title: context.tr('Language'),
           child: BaseCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Tracked coverage', style: theme.textTheme.titleMedium),
+                Text(
+                  context.tr('Language'),
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                AppSegmentedControl<String>(
+                  value: locale.languageCode,
+                  options: const [
+                    (value: 'en', label: 'English'),
+                    (value: 'zh', label: '中文'),
+                  ],
+                  onChanged: (value) => ref
+                      .read(localeProvider.notifier)
+                      .setLocale(Locale(value)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SectionBlock(
+          title: context.tr('Data scope'),
+          child: BaseCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('Tracked coverage'),
+                  style: theme.textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Text(
-                  'DefiLlama coverage is limited to the current top 20 stablecoins by circulating USD. Related DeFi pools are filtered to that same market set.',
+                  context.tr(
+                    'DefiLlama coverage is limited to the current top 20 stablecoins by circulating USD. Related DeFi pools are filtered to that same market set.',
+                  ),
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'CeFi rates currently come from Binance and OKX only, and the app shows six core fields for each offer.',
+                  context.tr(
+                    'CeFi rates currently come from Binance and OKX only, and the app shows six core fields for each offer.',
+                  ),
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -88,37 +129,42 @@ class SettingsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Data status',
+          title: context.tr('Data status'),
           child: healthAsync.when(
             data: (health) => BaseCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Current sources', style: theme.textTheme.titleMedium),
+                  Text(
+                    context.tr('Current sources'),
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 8),
                   Text(
-                    'DefiLlama for top-20 stablecoins and related DeFi pools. Binance and OKX for CeFi rates.',
+                    context.tr(
+                      'DefiLlama for top-20 stablecoins and related DeFi pools. Binance and OKX for CeFi rates.',
+                    ),
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Last successful updates',
+                    context.tr('Last successful updates'),
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
                   _SettingsStatusRow(
-                    label: 'Stablecoins',
-                    value: _formatSyncTime(health.stablecoinsSyncedAt),
+                    label: context.tr('Stablecoins'),
+                    value: _formatSyncTime(context, health.stablecoinsSyncedAt),
                   ),
                   const SizedBox(height: 10),
                   _SettingsStatusRow(
-                    label: 'DeFi pools',
-                    value: _formatSyncTime(health.poolsSyncedAt),
+                    label: context.tr('DeFi pools'),
+                    value: _formatSyncTime(context, health.poolsSyncedAt),
                   ),
                   const SizedBox(height: 10),
                   _SettingsStatusRow(
-                    label: 'CeFi board',
-                    value: _formatSyncTime(health.cefiSyncedAt),
+                    label: context.tr('CeFi board'),
+                    value: _formatSyncTime(context, health.cefiSyncedAt),
                   ),
                 ],
               ),
@@ -131,10 +177,12 @@ class SettingsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Compliance',
+          title: context.tr('Compliance'),
           child: BaseCard(
             child: Text(
-              'Stably aggregates public data and local simulations only. It does not execute trades, custody assets, or provide investment advice.',
+              context.tr(
+                'Stably aggregates public data and local simulations only. It does not execute trades, custody assets, or provide investment advice.',
+              ),
               style: theme.textTheme.bodyMedium,
             ),
           ),
@@ -170,9 +218,9 @@ class _SettingsStatusRow extends StatelessWidget {
   }
 }
 
-String _formatSyncTime(String? value) {
+String _formatSyncTime(BuildContext context, String? value) {
   if (value == null || value.isEmpty) {
-    return 'Not synced yet';
+    return context.tr('Not synced yet');
   }
 
   final parsed = DateTime.tryParse(value)?.toLocal();

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stably_app/app/l10n/app_localizations.dart';
 import 'package:stably_app/app/router/app_router.dart';
 import 'package:stably_app/features/market/data/models/stablecoin_chain.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
@@ -65,7 +66,7 @@ class StablecoinDetailPage extends ConsumerWidget {
           onRefresh: () => _refresh(ref),
           children: [
             SectionBlock(
-              title: 'Market Overview',
+              title: context.tr('Market Overview'),
               child: HighlightPanel(
                 title:
                     '${detail.stablecoin.symbol} is part of the current top 20 stablecoin set and is tracked on ${detail.stablecoin.chains.length} chains.',
@@ -76,9 +77,9 @@ class StablecoinDetailPage extends ConsumerWidget {
               ),
             ),
             SectionBlock(
-              title: 'Core Profile',
+              title: context.tr('Core Profile'),
               child: InfoListCard(
-                title: 'Project Details',
+                title: context.tr('Project Details'),
                 rows: [
                   (
                     label: 'Price',
@@ -104,7 +105,7 @@ class StablecoinDetailPage extends ConsumerWidget {
               ),
             ),
             SectionBlock(
-              title: 'Circulating USD Trend',
+              title: context.tr('Circulating USD Trend'),
               child: TrendLineChartCard(
                 currentUsd: detail.stablecoin.circulatingPeggedUsd,
                 prevDayUsd:
@@ -120,7 +121,7 @@ class StablecoinDetailPage extends ConsumerWidget {
               ),
             ),
             SectionBlock(
-              title: 'Chain Coverage',
+              title: context.tr('Chain Coverage'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -171,14 +172,14 @@ class StablecoinDetailPage extends ConsumerWidget {
               ),
             ),
             SectionBlock(
-              title: 'Related Yield Pools',
+              title: context.tr('Related Yield Pools'),
               child: poolsAsync.when(
                 data: (pools) {
                   final visiblePools = _sortPools(pools).take(3).toList();
 
                   if (pools.isEmpty) {
                     return AppEmptyState(
-                      title: 'No related yield pools',
+                      title: context.tr('No related yield pools'),
                       description: selectedChain == null
                           ? 'There are no tracked top-20 stablecoin pools for this symbol right now.'
                           : 'There are no tracked top-20 stablecoin pools for this symbol on $selectedChain right now.',
@@ -268,7 +269,7 @@ class _DetailStateScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppPageScaffold(title: 'Stablecoin', children: [child]);
+    return AppPageScaffold(title: context.tr('Stablecoin'), children: [child]);
   }
 }
 

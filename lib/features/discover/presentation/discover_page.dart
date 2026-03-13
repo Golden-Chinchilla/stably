@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stably_app/app/l10n/app_localizations.dart';
 import 'package:stably_app/app/router/app_router.dart';
 import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
@@ -62,11 +63,11 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
     final cefiAsync = ref.watch(cefiProductsProvider);
 
     return AppPageScaffold(
-      title: 'Yield Discovery',
+      title: context.tr('Yield Discovery'),
       onRefresh: _refresh,
       children: [
         SectionBlock(
-          title: 'Discovery Overview',
+          title: context.tr('Discovery Overview'),
           child: poolsAsync.when(
             data: (pools) {
               final sortedPools = _sortYieldPools(pools);
@@ -89,7 +90,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           ),
         ),
         SectionBlock(
-          title: 'Search',
+          title: context.tr('Search'),
           child: AppSearchField(
             controller: _searchController,
             placeholder: 'Search top 20 stablecoins, pools, CeFi, or chains',
@@ -98,7 +99,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           ),
         ),
         SectionBlock(
-          title: 'Top 20 Stablecoins',
+          title: context.tr('Top 20 Stablecoins'),
           child: stablecoinsAsync.when(
             data: (stablecoins) => Wrap(
               spacing: 8,
@@ -127,7 +128,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           ),
         ),
         SectionBlock(
-          title: 'Stablecoin Coverage',
+          title: context.tr('Stablecoin Coverage'),
           child: stablecoinsAsync.when(
             data: (stablecoins) => _StablecoinBoard(
               stablecoins: _sortStablecoins(
@@ -142,7 +143,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           ),
         ),
         SectionBlock(
-          title: 'Yield Pool Board',
+          title: context.tr('Yield Pool Board'),
           child: poolsAsync.when(
             data: (pools) {
               final filteredPools = _sortYieldPools(_filterPools(pools));
@@ -211,7 +212,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           ),
         ),
         SectionBlock(
-          title: 'CeFi Board',
+          title: context.tr('CeFi Board'),
           child: cefiAsync.when(
             data: (products) {
               final filteredProducts =
@@ -281,8 +282,8 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
             ),
           ),
         ),
-        const SectionBlock(
-          title: 'Research Notes',
+        SectionBlock(
+          title: context.tr('Research Notes'),
           child: Column(
             children: [
               RiskNoticeCard(
@@ -457,17 +458,6 @@ class _StablecoinBoardCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: PillButton(
-                  label: 'Allocate',
-                  icon: CupertinoIcons.chart_pie,
-                  compact: true,
-                  onPressed: () => context.goNamed(
-                    AppRoute.allocate.name,
-                    queryParameters: {'symbol': stablecoin.symbol},
-                  ),
-                ),
-              ),
             ],
           ),
         ],
@@ -524,12 +514,10 @@ class _DiscoverPoolList extends StatelessWidget {
               return;
             }
 
-            context.goNamed(
-              AppRoute.allocate.name,
-              queryParameters: {
-                'symbol': stablecoin.symbol,
-                'chain': pools[index].chain,
-              },
+            context.pushNamed(
+              AppRoute.stablecoinDetail.name,
+              pathParameters: {'id': stablecoin.id},
+              queryParameters: {'chain': pools[index].chain},
             );
           },
         ),

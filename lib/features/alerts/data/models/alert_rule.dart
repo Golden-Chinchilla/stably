@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum AlertRuleType { yieldBelow, newPromoWatch, portfolioDrift }
+enum AlertRuleType { yieldBelow, newPromoWatch }
 
 class AlertRule {
   const AlertRule({

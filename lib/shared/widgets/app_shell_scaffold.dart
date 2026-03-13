@@ -15,8 +15,6 @@ class AppShellScaffold extends StatelessWidget {
   static const _items = [
     CupertinoIcons.home,
     CupertinoIcons.compass_fill,
-    CupertinoIcons.chart_bar_alt_fill,
-    CupertinoIcons.money_dollar_circle_fill,
     CupertinoIcons.bell_fill,
   ];
 

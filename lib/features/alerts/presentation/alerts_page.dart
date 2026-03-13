@@ -1,12 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stably_app/app/l10n/app_localizations.dart';
 import 'package:stably_app/features/alerts/data/models/alert_rule.dart';
 import 'package:stably_app/features/alerts/presentation/providers/alert_rule_providers.dart';
 import 'package:stably_app/features/market/data/models/yield_pool.dart';
 import 'package:stably_app/features/market/presentation/providers/market_providers.dart';
-import 'package:stably_app/features/portfolio/data/models/portfolio_position.dart';
-import 'package:stably_app/features/portfolio/presentation/providers/portfolio_providers.dart';
 import 'package:stably_app/shared/utils/formatters.dart';
 import 'package:stably_app/shared/widgets/alert_rule_card.dart';
 import 'package:stably_app/shared/widgets/app_amount_field.dart';
@@ -36,7 +35,6 @@ class AlertsPage extends ConsumerWidget {
     await Future.wait([
       ref.refresh(alertRulesControllerProvider.future),
       ref.refresh(yieldPoolsProvider.future),
-      ref.refresh(portfolioControllerProvider.future),
     ]);
   }
 
@@ -48,12 +46,6 @@ class AlertsPage extends ConsumerWidget {
     final pools = ref
         .read(yieldPoolsProvider)
         .maybeWhen(data: (items) => items, orElse: () => const <YieldPool>[]);
-    final positions = ref
-        .read(portfolioControllerProvider)
-        .maybeWhen(
-          data: (items) => items,
-          orElse: () => const <PortfolioPosition>[],
-        );
 
     final result = await showModalBottomSheet<AlertRule>(
       context: context,
@@ -62,7 +54,6 @@ class AlertsPage extends ConsumerWidget {
       builder: (context) => _AlertRuleFormSheet(
         initialRule: initialRule,
         livePools: pools,
-        positions: positions,
       ),
     );
 
@@ -74,12 +65,12 @@ class AlertsPage extends ConsumerWidget {
     if (initialRule == null) {
       await controller.addRule(result);
       if (context.mounted) {
-        AppFeedback.showSuccess(context, 'Alert rule saved.');
+        AppFeedback.showSuccess(context, context.tr('Alert rule saved.'));
       }
     } else {
       await controller.updateRule(result);
       if (context.mounted) {
-        AppFeedback.showSuccess(context, 'Alert rule updated.');
+        AppFeedback.showSuccess(context, context.tr('Alert rule updated.'));
       }
     }
   }
@@ -92,17 +83,17 @@ class AlertsPage extends ConsumerWidget {
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Delete alert rule'),
+        title: Text(context.tr('Delete alert rule')),
         content: Text('Remove "${rule.title}" from local alert rules?'),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('Cancel')),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.tr('Delete')),
           ),
         ],
       ),
@@ -111,7 +102,7 @@ class AlertsPage extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       await ref.read(alertRulesControllerProvider.notifier).deleteRule(rule.id);
       if (context.mounted) {
-        AppFeedback.showInfo(context, 'Alert rule deleted.');
+        AppFeedback.showInfo(context, context.tr('Alert rule deleted.'));
       }
     }
   }
@@ -125,9 +116,9 @@ class AlertsPage extends ConsumerWidget {
     await ref.read(alertRulesControllerProvider.notifier).updateRule(nextRule);
     if (context.mounted) {
       if (nextRule.enabled) {
-        AppFeedback.showSuccess(context, 'Alert rule enabled.');
+        AppFeedback.showSuccess(context, context.tr('Alert rule enabled.'));
       } else {
-        AppFeedback.showInfo(context, 'Alert rule paused.');
+        AppFeedback.showInfo(context, context.tr('Alert rule paused.'));
       }
     }
   }
@@ -136,14 +127,13 @@ class AlertsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final rulesAsync = ref.watch(alertRulesControllerProvider);
     final poolsAsync = ref.watch(yieldPoolsProvider);
-    final portfolioAsync = ref.watch(portfolioControllerProvider);
 
     return AppPageScaffold(
-      title: 'Alerts',
+      title: context.tr('Alerts'),
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
-          title: 'Alerts Overview',
+          title: context.tr('Alerts Overview'),
           child: rulesAsync.when(
             data: (rules) {
               final enabledRules = rules.where((rule) => rule.enabled).length;
@@ -151,7 +141,7 @@ class AlertsPage extends ConsumerWidget {
               return HighlightPanel(
                 title: rules.isEmpty
                     ? 'Add your first alert rule.'
-                    : 'Track rates, promos, and portfolio drift from one ruleset.',
+                    : 'Track current yield thresholds and promo watches from one ruleset.',
                 value: '$enabledRules enabled',
                 secondaryValue: '${rules.length} total',
                 tag: rules.isEmpty ? 'Empty' : 'Active',
@@ -160,7 +150,7 @@ class AlertsPage extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: PillButton(
-                        label: 'Add rule',
+                        label: context.tr('Add rule'),
                         icon: CupertinoIcons.add,
                         onPressed: () => _openRuleForm(context, ref),
                       ),
@@ -177,19 +167,19 @@ class AlertsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Alerts Snapshot',
+          title: context.tr('Alerts Snapshot'),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               PillButton(
-                label: 'Add',
+                label: context.tr('Add'),
                 icon: CupertinoIcons.add,
                 compact: true,
                 onPressed: () => _openRuleForm(context, ref),
               ),
               const SizedBox(width: 8),
               PillButton(
-                label: 'Clear',
+                label: context.tr('Clear'),
                 icon: CupertinoIcons.trash,
                 compact: true,
                 isPrimary: false,
@@ -198,7 +188,10 @@ class AlertsPage extends ConsumerWidget {
                       .read(alertRulesControllerProvider.notifier)
                       .clearRules();
                   if (context.mounted) {
-                    AppFeedback.showInfo(context, 'Alert rules cleared.');
+                    AppFeedback.showInfo(
+                      context,
+                      context.tr('Alert rules cleared.'),
+                    );
                   }
                 },
               ),
@@ -220,21 +213,11 @@ class AlertsPage extends ConsumerWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: portfolioAsync.when(
-                        data: (positions) => InsightTile(
-                          icon: CupertinoIcons.square_stack_3d_up_fill,
-                          label: 'Tracked positions',
-                          value: '${positions.length}',
-                          caption:
-                              'Portfolio entries that can trigger drift reminders.',
-                        ),
-                        loading: () => const AppInsightTileSkeleton(),
-                        error: (_, _) => const InsightTile(
-                          icon: CupertinoIcons.square_stack_3d_up_fill,
-                          label: 'Tracked positions',
-                          value: '—',
-                          caption: 'Portfolio context unavailable.',
-                        ),
+                      child: InsightTile(
+                        icon: CupertinoIcons.checkmark_seal_fill,
+                        label: 'Enabled',
+                        value: '${rules.where((rule) => rule.enabled).length}',
+                        caption: 'Rules currently active on this device.',
                       ),
                     ),
                   ],
@@ -246,7 +229,7 @@ class AlertsPage extends ConsumerWidget {
                     value: '${pools.length} pools',
                     caption: pools.isEmpty
                         ? 'No tracked yield pools loaded yet.'
-                        : 'Current market lead: ${pools.first.project} · ${formatPercent(pools.first.apy)}',
+                        : 'Current market lead: ${pools.first.project} at ${formatPercent(pools.first.apy)}',
                     tag: 'Current',
                     tone: StatusTagTone.warning,
                   ),
@@ -278,16 +261,16 @@ class AlertsPage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Alert Rules',
+          title: context.tr('Alert Rules'),
           child: rulesAsync.when(
             data: (rules) {
               if (rules.isEmpty) {
                 return AppEmptyState(
-                  title: 'No alert rules yet',
+                  title: context.tr('No alert rules yet'),
                   description:
-                      'Add a rule manually to monitor thresholds and portfolio drift on this device.',
+                      'Add a rule manually to monitor current market thresholds on this device.',
                   icon: CupertinoIcons.bell,
-                  actionLabel: 'Add rule',
+                  actionLabel: context.tr('Add rule'),
                   onAction: () => _openRuleForm(context, ref),
                 );
               }
@@ -307,22 +290,24 @@ class AlertsPage extends ConsumerWidget {
                       description: _ruleDescription(sortedRules[index], pools),
                       frequency: sortedRules[index].frequency,
                       tone: _ruleTone(sortedRules[index]),
-                      statusLabel: sortedRules[index].enabled ? 'Enabled' : 'Paused',
+                      statusLabel: sortedRules[index].enabled
+                          ? 'Enabled'
+                          : 'Paused',
                       secondaryTags: [
                         if (sortedRules[index].symbol != null)
                           sortedRules[index].symbol!,
                         if (sortedRules[index].chain != null)
                           sortedRules[index].chain!,
                         if (sortedRules[index].threshold != null)
-                          '≤ ${sortedRules[index].threshold!.toStringAsFixed(2)}%',
+                          '< ${sortedRules[index].threshold!.toStringAsFixed(2)}%',
                       ],
                       footer: Row(
                         children: [
                           Expanded(
                             child: PillButton(
                               label: sortedRules[index].enabled
-                                  ? 'Pause'
-                                  : 'Enable',
+                                  ? context.tr('Pause')
+                                  : context.tr('Enable'),
                               icon: sortedRules[index].enabled
                                   ? CupertinoIcons.pause
                                   : CupertinoIcons.play_fill,
@@ -338,7 +323,7 @@ class AlertsPage extends ConsumerWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: PillButton(
-                              label: 'Edit',
+                              label: context.tr('Edit'),
                               icon: CupertinoIcons.pencil,
                               compact: true,
                               isPrimary: false,
@@ -352,11 +337,14 @@ class AlertsPage extends ConsumerWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: PillButton(
-                              label: 'Delete',
+                              label: context.tr('Delete'),
                               icon: CupertinoIcons.delete,
                               compact: true,
-                              onPressed: () =>
-                                  _deleteRule(context, ref, sortedRules[index]),
+                              onPressed: () => _deleteRule(
+                                context,
+                                ref,
+                                sortedRules[index],
+                              ),
                             ),
                           ),
                         ],
@@ -375,8 +363,8 @@ class AlertsPage extends ConsumerWidget {
             ),
           ),
         ),
-        const SectionBlock(
-          title: 'Alert Notes',
+        SectionBlock(
+          title: context.tr('Alert Notes'),
           child: Column(
             children: [
               RiskNoticeCard(
@@ -385,7 +373,7 @@ class AlertsPage extends ConsumerWidget {
                     'The product surfaces information but does not execute transfers or recommendations.',
                 tone: StatusTagTone.info,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               RiskNoticeCard(
                 title: 'Short-lived promos may expire before action',
                 description:
@@ -404,12 +392,10 @@ class _AlertRuleFormSheet extends StatefulWidget {
   const _AlertRuleFormSheet({
     this.initialRule,
     required this.livePools,
-    required this.positions,
   });
 
   final AlertRule? initialRule;
   final List<YieldPool> livePools;
-  final List<PortfolioPosition> positions;
 
   @override
   State<_AlertRuleFormSheet> createState() => _AlertRuleFormSheetState();
@@ -460,10 +446,6 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final suggestions = widget.livePools.take(6).toList();
-    final portfolioSymbols = widget.positions
-        .map((position) => position.symbol)
-        .toSet()
-        .take(6);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -482,13 +464,13 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
               children: [
                 Text(
                   widget.initialRule == null
-                      ? 'Add alert rule'
-                      : 'Edit alert rule',
+                      ? context.tr('Add rule')
+                      : context.tr('Edit'),
                   style: theme.textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Store a local rule for yield thresholds, promo watches, or portfolio drift. Current market matches can be used to prefill symbols and chains.',
+                  'Store a local rule for yield thresholds or promo watches. Current market matches can be used to prefill symbols and chains.',
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
@@ -504,10 +486,7 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                 ),
                 const SizedBox(height: 16),
                 if (suggestions.isNotEmpty) ...[
-                  Text(
-                    'Market matches',
-                    style: theme.textTheme.titleSmall,
-                  ),
+                  Text('Market matches', style: theme.textTheme.titleSmall),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -523,28 +502,6 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                               _titleController.text =
                                   '${pool.symbol} rule on ${pool.project}';
                             }
-                            setState(() {});
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (portfolioSymbols.isNotEmpty) ...[
-                  Text(
-                    'Tracked position symbols',
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final symbol in portfolioSymbols)
-                        AppFilterChip(
-                          label: symbol,
-                          onTap: () {
-                            _symbolController.text = symbol;
                             setState(() {});
                           },
                         ),
@@ -630,7 +587,7 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                   children: [
                     Expanded(
                       child: PillButton(
-                        label: 'Cancel',
+                        label: context.tr('Cancel'),
                         isPrimary: false,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
@@ -638,7 +595,9 @@ class _AlertRuleFormSheetState extends State<_AlertRuleFormSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: PillButton(
-                        label: widget.initialRule == null ? 'Save' : 'Update',
+                        label: widget.initialRule == null
+                            ? context.tr('Save')
+                            : context.tr('Update'),
                         icon: CupertinoIcons.check_mark,
                         onPressed: _submit,
                       ),
@@ -684,7 +643,6 @@ String _typeLabel(AlertRuleType type) {
   return switch (type) {
     AlertRuleType.yieldBelow => 'Yield below',
     AlertRuleType.newPromoWatch => 'Promo watch',
-    AlertRuleType.portfolioDrift => 'Portfolio drift',
   };
 }
 
@@ -692,7 +650,6 @@ bool _requiresSymbol(AlertRuleType type) {
   return switch (type) {
     AlertRuleType.yieldBelow => true,
     AlertRuleType.newPromoWatch => true,
-    AlertRuleType.portfolioDrift => false,
   };
 }
 
@@ -700,14 +657,13 @@ bool _requiresThreshold(AlertRuleType type) {
   return switch (type) {
     AlertRuleType.yieldBelow => true,
     AlertRuleType.newPromoWatch => false,
-    AlertRuleType.portfolioDrift => false,
   };
 }
 
 String _ruleDescription(AlertRule rule, List<YieldPool> pools) {
   switch (rule.type) {
     case AlertRuleType.yieldBelow:
-      return '${rule.description} Current threshold: ${rule.threshold?.toStringAsFixed(2) ?? '—'}%.';
+      return '${rule.description} Current threshold: ${rule.threshold?.toStringAsFixed(2) ?? '--'}%.';
     case AlertRuleType.newPromoWatch:
       final matched = pools
           .where((pool) => pool.symbol == rule.symbol)
@@ -717,8 +673,6 @@ String _ruleDescription(AlertRule rule, List<YieldPool> pools) {
         return rule.description;
       }
       return '${rule.description} Current live context: ${matched.first.project} on ${matched.first.chain} at ${formatPercent(matched.first.apy)}.';
-    case AlertRuleType.portfolioDrift:
-      return rule.description;
   }
 }
 
@@ -726,7 +680,6 @@ StatusTagTone _ruleTone(AlertRule rule) {
   return switch (rule.type) {
     AlertRuleType.yieldBelow => StatusTagTone.info,
     AlertRuleType.newPromoWatch => StatusTagTone.success,
-    AlertRuleType.portfolioDrift => StatusTagTone.warning,
   };
 }
 

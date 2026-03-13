@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stably_app/app/l10n/app_localizations.dart';
 import 'package:stably_app/app/router/app_router.dart';
 import 'package:stably_app/features/market/data/models/cefi_product.dart';
 import 'package:stably_app/features/market/data/models/stablecoin.dart';
@@ -41,11 +42,11 @@ class HomePage extends ConsumerWidget {
     final healthAsync = ref.watch(healthProvider);
 
     return AppPageScaffold(
-      title: 'Stably',
+      title: context.tr('Stably'),
       onRefresh: () => _refresh(ref),
       children: [
         SectionBlock(
-          title: 'Market Overview',
+          title: context.tr('Market Overview'),
           child: stablecoinsAsync.when(
             data: (stablecoins) {
               final sortedStablecoins = _sortStablecoins(stablecoins);
@@ -67,7 +68,7 @@ class HomePage extends ConsumerWidget {
                     Expanded(
                       child: PillButton(
                         label: featured == null
-                            ? 'Open discovery'
+                            ? context.tr('Open discovery')
                             : 'Open ${featured.symbol}',
                         icon: CupertinoIcons.arrow_up_right,
                         onPressed: featured == null
@@ -90,7 +91,7 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Coverage Snapshot',
+          title: context.tr('Coverage Snapshot'),
           child: stablecoinsAsync.when(
             data: (stablecoins) {
               final sortedStablecoins = _sortStablecoins(stablecoins);
@@ -201,7 +202,7 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'CeFi Snapshot',
+          title: context.tr('CeFi Snapshot'),
           child: cefiAsync.when(
             data: (products) {
               final sortedProducts = _sortCefiProducts(products);
@@ -248,7 +249,7 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Top Yield Pools',
+          title: context.tr('Top Yield Pools'),
           child: poolsAsync.when(
             data: (pools) => _PoolList(
               pools: _sortYieldPools(pools).take(2).toList(),
@@ -265,7 +266,7 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         SectionBlock(
-          title: 'Top Stablecoins',
+          title: context.tr('Top Stablecoins'),
           child: stablecoinsAsync.when(
             data: (stablecoins) => _StablecoinList(
               stablecoins: _sortStablecoins(stablecoins).take(3).toList(),
@@ -277,8 +278,8 @@ class HomePage extends ConsumerWidget {
             ),
           ),
         ),
-        const SectionBlock(
-          title: 'Risk Notes',
+        SectionBlock(
+          title: context.tr('Risk Notes'),
           child: Column(
             children: [
               RiskNoticeCard(
@@ -347,12 +348,10 @@ class _PoolList extends StatelessWidget {
                     : StatusTagTone.info,
                 onTap: stablecoin == null
                     ? null
-                    : () => context.goNamed(
-                          AppRoute.allocate.name,
-                          queryParameters: {
-                            'symbol': stablecoin.symbol,
-                            'chain': pools[index].chain,
-                          },
+                    : () => context.pushNamed(
+                          AppRoute.stablecoinDetail.name,
+                          pathParameters: {'id': stablecoin.id},
+                          queryParameters: {'chain': pools[index].chain},
                         ),
               );
             },
@@ -362,6 +361,22 @@ class _PoolList extends StatelessWidget {
       ],
     );
   }
+}
+
+Stablecoin? _matchStablecoin(YieldPool pool, List<Stablecoin> stablecoins) {
+  final normalizedParts = pool.symbol
+      .toUpperCase()
+      .split(RegExp(r'[^A-Z0-9]+'))
+      .where((part) => part.isNotEmpty)
+      .toSet();
+
+  for (final stablecoin in stablecoins) {
+    if (normalizedParts.contains(stablecoin.symbol.toUpperCase())) {
+      return stablecoin;
+    }
+  }
+
+  return null;
 }
 
 class _StablecoinList extends StatelessWidget {
@@ -449,32 +464,12 @@ class _StablecoinSummaryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: PillButton(
-                  label: 'Allocate',
-                  icon: CupertinoIcons.chart_pie,
-                  compact: true,
-                  onPressed: () => context.goNamed(
-                    AppRoute.allocate.name,
-                    queryParameters: {'symbol': stablecoin.symbol},
-                  ),
-                ),
-              ),
             ],
           ),
         ],
       ),
     );
   }
-}
-
-Stablecoin? _matchStablecoin(YieldPool pool, List<Stablecoin> stablecoins) {
-  for (final stablecoin in stablecoins) {
-    if (stablecoin.symbol.toUpperCase() == pool.symbol.toUpperCase()) {
-      return stablecoin;
-    }
-  }
-  return null;
 }
 
 List<Stablecoin> _sortStablecoins(List<Stablecoin> stablecoins) {
